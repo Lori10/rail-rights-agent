@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "lori10-devflow": {
+      "source": { "source": "github", "repo": "Lori10/claude-devflow" }
+    }
+  },
+  "enabledPlugins": {
+    "devflow@lori10-devflow": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
+      "Bash(git branch:*)", "Bash(git switch:*)", "Bash(git add:*)", "Bash(git commit:*)",
+      "Bash(git push:*)", "Bash(git pull:*)", "Bash(git fetch:*)", "Bash(git merge-base:*)",
+      "Bash(gh pr create:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)", "Bash(gh pr checks:*)",
+      "Bash(gh pr ready:*)", "Bash(gh pr diff:*)",
+      "Bash(gh run list:*)", "Bash(gh run view:*)", "Bash(gh run watch:*)",
+      "Bash(scripts/check.sh:*)",
+      "Bash(uv run pytest -q:*)",
+      "Bash(uv run --quiet pytest -q -x --ff:*)",
+      "Bash(uv run ruff check .:*)",
+      "Bash(cdk synth:*)", "Bash(cdk diff:*)", "Bash(cdk ls:*)",
+      "Bash(aws sts get-caller-identity:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)"
+    ]
+  }
+}

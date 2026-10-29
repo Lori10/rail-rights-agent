@@ -1,0 +1,29 @@
+# Changes here will be overwritten by Copier; do not edit manually
+_commit: v0.1.0
+_src_path: gh:Lori10/claude-devflow
+aws_profile: railagent
+aws_region: eu-north-1
+claude_action: false
+cloud: aws
+code_paths: src tests infra pyproject.toml
+devflow_marketplace_repo: Lori10/claude-devflow
+fast_test_cmd: uv run --quiet pytest -q -x --ff
+github_repo: Lori10/rail-rights-agent
+language: python
+lint_cmd: uv run ruff check .
+lint_file_cmd: uv run --quiet ruff check --force-exclude
+lint_globs: '*.py'
+openspec_version: 1.15.0
+project_description: Bilingual (DE/EN) AI agent on AWS Bedrock AgentCore that explains
+    rail passenger rights under EU Regulation 2021/782 and Deutsche Bahn conditions
+    of carriage, checks train delays, computes compensation and submits a claim after
+    explicit confirmation.
+project_name: Rail Rights Agent
+project_slug: rail-rights-agent
+protected_branch: main
+public_repo: true
+python_version: '3.12'
+sandbox: false
+services: ''
+test_cmd: uv run pytest -q
+test_paths: tests
