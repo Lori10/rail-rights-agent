@@ -60,8 +60,8 @@
 
 ## 5. Live checks (user runs or approves; each step needs explicit go-ahead)
 
-- [ ] 5.1 With fresh `railagent` credentials, run `scripts/deploy.sh` (no budget email). Verify: `RailRightsAgent-Baseline` exists in eu-north-1 with the four stack tags (`aws cloudformation describe-stacks`). Cost: $0.
-- [ ] 5.2 Run `scripts/destroy.sh`. Verify: the stack is gone. Cost: $0.
+- [x] 5.1 With fresh `railagent` credentials, run `scripts/deploy.sh` (no budget email). Verify: `RailRightsAgent-Baseline` exists in eu-north-1 with the four stack tags (`aws cloudformation describe-stacks`). Cost: $0.
+- [x] 5.2 Run `scripts/destroy.sh`. Verify: the stack is gone. Cost: $0.
 - [ ] 5.3 Optional: set `RAILAGENT_BUDGET_EMAIL` locally and run `scripts/deploy.sh`. Verify: the budget appears in the Budgets console with three notifications, and the confirmation email arrives. The budget stays deployed. Cost: $0. If the free plan rejects Budgets, record that in design.md and remove the budget stack through `/opsx:update`.
 
 ## Workflow follow-up
