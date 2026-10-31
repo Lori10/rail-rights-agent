@@ -190,6 +190,13 @@ The three source PDFs (about 3.3 MB) are in `docs/source/`. That folder is gitig
   - boto3-stubs types a metadata filter's `value` as a JSON object, but the API accepts any JSON value. `retrieval.py` uses one commented `cast` for the language string.
   - Each CLI command builds a `boto3.Session` from the `railagent` profile. Running in AgentCore Runtime (milestone 5) has no profile, so `aws.clients` will need a profile-less path there.
 
+- **Live checks (2026-10-31):**
+  - Deploy: `RailRightsAgent-KnowledgeBase` reached `CREATE_COMPLETE` in about 60 s, with the four tags, three outputs and one vector index.
+  - Ingest: the first run failed because boto3 needs `botocore[crt]` to read `aws login` credentials. It was added to the dev group only (with your approval): AgentCore uses its execution role, so production code never needs it. After that, the job finished in about 40 s with 3 scanned, 3 indexed and 0 failed.
+  - Live tests: 4 passed. Passages do carry page numbers (`x-amz-bedrock-kb-document-page-number`). Spot checks: the EN and DE questions on 60 and 120 minutes of delay both rank Art. 19 (p. 19) first, with scores around 0.75–0.79. The DE question also brings in DB conditions p. 44. No weak results.
+  - Destroy: no stack, vector bucket, documents bucket or knowledge base remained. The auto-delete Lambda's log group did remain, as expected; it was deleted by hand.
+  - Step 5 (leave it running) was skipped: there are no idle resources, and redeploying and re-ingesting takes about 2 minutes when `agent-local` needs it.
+
 ## Migration Plan
 
 - Offline groups change nothing in AWS.

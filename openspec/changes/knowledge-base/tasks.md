@@ -64,21 +64,21 @@
 
 ## 6. Live checks (user runs or approves; each step needs explicit go-ahead)
 
-- [ ] 6.1 With fresh `railagent` credentials, run `scripts/deploy.sh`. Verify:
+- [x] 6.1 With fresh `railagent` credentials, run `scripts/deploy.sh`. Verify:
   - `RailRightsAgent-KnowledgeBase` is `CREATE_COMPLETE` in eu-north-1 with the four tags
   - its three outputs are present
   - `aws s3vectors list-indexes` shows the index
 
   Cost: about $0.
-- [ ] 6.2 Run `uv run python -m rail_rights_agent.knowledge_base ingest`. Verify: it exits 0 with 3 scanned, 3 indexed and 0 failed documents. Cost: about $0.01.
-- [ ] 6.3 Run `uv run pytest -q -m live tests/live/test_knowledge_base_live.py`. Verify: 4 passed. Record in design.md whether passages carry page numbers, and note any weak results. Cost: under $0.01.
-- [ ] 6.4 Run `scripts/destroy.sh`. Verify:
+- [x] 6.2 Run `uv run python -m rail_rights_agent.knowledge_base ingest`. Verify: it exits 0 with 3 scanned, 3 indexed and 0 failed documents. Cost: about $0.01.
+- [x] 6.3 Run `uv run pytest -q -m live tests/live/test_knowledge_base_live.py`. Verify: 4 passed. Record in design.md whether passages carry page numbers, and note any weak results. Cost: under $0.01.
+- [x] 6.4 Run `scripts/destroy.sh`. Verify:
   - no `RailRightsAgent-KnowledgeBase` stack remains
   - `aws s3vectors list-vector-buckets` shows no project bucket
   - the documents bucket is gone
 
   Record in design.md whether the auto-delete log group remains. Cost: $0.
-- [ ] 6.5 Optional, your call: redeploy and re-ingest, and leave the knowledge base running for `agent-local`. Cost: about $0.01, then storage cents per month.
+- [x] 6.5 Optional (skipped: no idle resources; see design.md), your call: redeploy and re-ingest, and leave the knowledge base running for `agent-local`. Cost: about $0.01, then storage cents per month.
 
 ## Workflow follow-up
 

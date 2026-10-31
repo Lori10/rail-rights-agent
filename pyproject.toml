@@ -18,6 +18,7 @@ packages = ["src/rail_rights_agent"]
 [dependency-groups]
 dev = [
     "boto3-stubs[bedrock-agent,bedrock-agent-runtime,cloudformation,s3]>=1.43.123",
+    "botocore[crt]>=1.43.123",
     "mypy>=2.4",
     "pytest>=9.2",
     "ruff>=0.17",
