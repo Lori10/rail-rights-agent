@@ -36,16 +36,16 @@
 
 ## 2. Configuration
 
-- [ ] 2.1 Implement `src/rail_rights_agent/settings.py`: the frozen `Settings` dataclass and `load_settings(env)` per D3, including the optional budget email and limit. Verify: `tests/unit/test_settings.py` and the model-id scan pass.
-- [ ] 2.2 Add `.env.example` documenting every `RAILAGENT_*` variable with its default, and no real values. Verify: each variable read in `settings.py` appears in `.env.example` (checked by an extra assertion in `test_settings.py`).
-- [ ] 2.3 Commit (`feat: typed settings with eu-north-1 region lock`).
+- [x] 2.1 Implement `src/rail_rights_agent/settings.py`: the frozen `Settings` dataclass and `load_settings(env)` per D3, including the optional budget email and limit. Verify: `tests/unit/test_settings.py` and the model-id scan pass.
+- [x] 2.2 Add `.env.example` documenting every `RAILAGENT_*` variable with its default, and no real values. Verify: each variable read in `settings.py` appears in `.env.example` (checked by an extra assertion in `test_settings.py`).
+- [x] 2.3 Commit (`feat: typed settings with eu-north-1 region lock`).
 
 ## 3. CDK app skeleton
 
-- [ ] 3.1 Implement `infra/tagging.py` (`apply_project_tags`), `infra/stacks/baseline.py` (empty `BaselineStack`), `infra/stacks/budget.py` (`BudgetStack`, per D7) and `infra/app.py` (`build_app(settings)` plus `main`, per D4/D5). Verify: `tests/infra/test_app.py` passes.
-- [ ] 3.2 Add `cdk.json` (app `uv run python -m infra.app`) and `infra/env.py`, which prints profile and region from settings. Verify: `npx --yes aws-cdk@2.1147.0 synth --quiet` succeeds locally with no credentials, and `cdk.out/` is gitignored.
-- [ ] 3.3 Add `scripts/_cdk.sh` (pinned CLI version), `scripts/deploy.sh` and `scripts/destroy.sh`, per D6. Verify: `bash -n` passes on all three, and `scripts/deploy.sh --help`, or a dry `synth` path, prints the profile and region it would use, without calling AWS.
-- [ ] 3.4 Commit (`feat: CDK app skeleton with project tags and opt-in budget`).
+- [x] 3.1 Implement `infra/tagging.py` (`apply_project_tags`), `infra/stacks/baseline.py` (empty `BaselineStack`), `infra/stacks/budget.py` (`BudgetStack`, per D7) and `infra/app.py` (`build_app(settings)` plus `main`, per D4/D5). Verify: `tests/infra/test_app.py` passes.
+- [x] 3.2 Add `cdk.json` (app `uv run python -m infra.app`) and `infra/env.py`, which prints profile and region from settings. Verify: `npx --yes aws-cdk@2.1147.0 synth --quiet` succeeds locally with no credentials, and `cdk.out/` is gitignored.
+- [x] 3.3 Add `scripts/_cdk.sh` (pinned CLI version), `scripts/deploy.sh` and `scripts/destroy.sh`, per D6. Verify: `bash -n` passes on all three, and `scripts/deploy.sh --help`, or a dry `synth` path, prints the profile and region it would use, without calling AWS.
+- [x] 3.4 Commit (`feat: CDK app skeleton with project tags and opt-in budget`).
 
 ## 4. Quality gates and docs
 
