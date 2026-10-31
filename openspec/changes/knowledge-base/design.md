@@ -184,6 +184,12 @@ The three source PDFs (about 3.3 MB) are in `docs/source/`. That folder is gitig
 - **Ingestion is asynchronous and slow** (minutes). → Poll every 10 s with a 30-minute timeout. A timeout exits non-zero and gives the job id.
 - **New, fast-changing services.** S3 Vectors and the Knowledge Base S3 Vectors storage are recent. → APIs were verified 2026-10-31. Any deploy surprise is recorded here with the fix.
 
+- **Known gaps and adjustments found while implementing (offline groups):**
+  - `rail_rights_agent/knowledge_base/deployment.py` was added (not listed in D8). It holds the stack name, output keys and the `documents/` prefix, which both `infra/` and the ingest command use, so they can't drift apart.
+  - `validate_request` was moved out of `KnowledgeBaseRetriever.retrieve`, so the CLI rejects an empty question before it builds clients or reads the stack. It makes no AWS call at all.
+  - boto3-stubs types a metadata filter's `value` as a JSON object, but the API accepts any JSON value. `retrieval.py` uses one commented `cast` for the language string.
+  - Each CLI command builds a `boto3.Session` from the `railagent` profile. Running in AgentCore Runtime (milestone 5) has no profile, so `aws.clients` will need a profile-less path there.
+
 ## Migration Plan
 
 - Offline groups change nothing in AWS.

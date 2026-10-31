@@ -34,8 +34,7 @@ def app() -> cdk.App:
 def template(app: cdk.App) -> dict[str, Any]:
     stack = app.node.find_child(KNOWLEDGE_BASE)
     assert isinstance(stack, cdk.Stack)
-    result: dict[str, Any] = Template.from_stack(stack).to_json()
-    return result
+    return dict(Template.from_stack(stack).to_json())
 
 
 def resources_of(template: dict[str, Any], type_: str) -> dict[str, dict[str, Any]]:

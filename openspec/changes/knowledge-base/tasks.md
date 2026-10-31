@@ -60,7 +60,7 @@
 
 ## 5. Gate
 
-- [ ] 5.1 Run `/devflow:verify` and confirm PASS. Record any known gaps under Risks / Trade-offs in design.md. After PASS, push and open the draft PR (`gh pr create --draft`, body links `openspec/changes/knowledge-base/`).
+- [x] 5.1 Run `/devflow:verify` and confirm PASS. Record any known gaps under Risks / Trade-offs in design.md. After PASS, push and open the draft PR (`gh pr create --draft`, body links `openspec/changes/knowledge-base/`).
 
 ## 6. Live checks (user runs or approves; each step needs explicit go-ahead)
 
