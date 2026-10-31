@@ -140,6 +140,7 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
   - `scripts/weakened_tests.py`, which the devflow template manages, is excluded from ruff, because it exceeds this repo's 100-character line length.
   - `readme` was left out of `pyproject.toml` until task 4.3 created the README (hatchling fails on a missing readme). It was restored in 4.3.
   - The project `.claude/settings.json` deny rule `Read(./.env.*)` also blocked writing `.env.example`. The user narrowed it to the explicit real env-file names.
+  - Live task 6.3 (2026-10-31): the budget `rail-rights-agent-monthly-45b539ab` was created through the custom resource. Checked with the API: $20 COST monthly; ACTUAL 50/80 and FORECASTED 100 notifications to the configured email; all four tags. The task's "confirmation email arrives" check does not apply, because Budgets email subscribers need no opt-in, so the first mail is a real alert.
 
 ## Migration Plan
 

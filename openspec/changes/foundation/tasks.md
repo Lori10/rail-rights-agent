@@ -74,7 +74,7 @@
 
 - [x] 6.1 With fresh `railagent` credentials, run `scripts/deploy.sh` (no budget email). Verify: `RailRightsAgent-Baseline` exists in eu-north-1 with the four stack tags (`aws cloudformation describe-stacks`). Cost: $0.
 - [x] 6.2 Run `scripts/destroy.sh`. Verify: the stack is gone. Cost: $0.
-- [ ] 6.3 Set `RAILAGENT_BUDGET_EMAIL` locally and run `scripts/deploy.sh`. Verify: `aws budgets describe-budgets` shows the budget with a $20 limit, `describe-notifications-for-budget` shows the three notifications, and the confirmation email arrives. The budget stays deployed. Cost: about $0.
+- [x] 6.3 Set `RAILAGENT_BUDGET_EMAIL` locally and run `scripts/deploy.sh`. Verify: `aws budgets describe-budgets` shows the budget with a $20 limit, `describe-notifications-for-budget` shows the three notifications, and the confirmation email arrives. The budget stays deployed. Cost: about $0.
 
 ## Workflow follow-up
 
