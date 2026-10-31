@@ -132,7 +132,7 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
 - **Known gaps found during testing:**
   - An empty `RAILAGENT_BUDGET_EMAIL` counts as unset (no budget) rather than an error. The empty-value rule applies to the required values only, so `.env.example` can carry the blank line.
   - `scripts/weakened_tests.py`, which the devflow template manages, is excluded from ruff, because it exceeds this repo's 100-character line length.
-  - `readme` was left out of `pyproject.toml` until task 4.3 creates the README, because hatchling fails on a missing readme.
+  - `readme` was left out of `pyproject.toml` until task 4.3 created the README (hatchling fails on a missing readme). It was restored in 4.3.
   - The project `.claude/settings.json` deny rule `Read(./.env.*)` also blocked writing `.env.example`. The user narrowed it to the explicit real env-file names.
 
 ## Migration Plan

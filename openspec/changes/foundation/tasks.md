@@ -55,7 +55,7 @@
 
   Revert both, then confirm `scripts/check.sh` exits 0.
 - [ ] 4.2 Confirm CI needs no workflow change. Push the branch and open a draft PR (`gh pr create --draft`, body linking `openspec/changes/foundation/`). Verify: the `checks` job is green. If it isn't, fix `ci.yml` minimally and record why in design.md.
-- [ ] 4.3 Add a short "Development" section to the README covering `uv sync`, `scripts/check.sh`, the configuration variables, and deploy/destroy. Create the README if it doesn't exist; `portfolio-docs` will expand it. Verify: every command in it runs as written offline, except deploy/destroy.
+- [x] 4.3 Add a short "Development" section to the README covering `uv sync`, `scripts/check.sh`, the configuration variables, and deploy/destroy. Create the README if it doesn't exist; `portfolio-docs` will expand it. Verify: every command in it runs as written offline, except deploy/destroy.
 - [ ] 4.4 Run `/devflow:verify` and confirm PASS. Record any known gaps in design.md under Risks / Trade-offs.
 
 ## 5. Live checks (user runs or approves; each step needs explicit go-ahead)
