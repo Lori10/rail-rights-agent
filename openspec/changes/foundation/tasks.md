@@ -49,7 +49,7 @@
 
 ## 4. Quality gates and docs
 
-- [ ] 4.1 Add the `ruff format --check .` and `mypy` gates to `scripts/check.sh`, per D8. Verify by hand:
+- [x] 4.1 Add the `ruff format --check .` and `mypy` gates to `scripts/check.sh`, per D8. Verify by hand:
   - a deliberate type error in a scratch edit makes `scripts/check.sh` report FAIL on the type gate
   - a deliberate misformat fails the format gate
 
