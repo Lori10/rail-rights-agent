@@ -2,7 +2,7 @@
 
 ## 1. Dependencies and failing tests (red by design)
 
-- [ ] 1.1 With the user's approval (proposal, Impact):
+- [x] 1.1 With the user's approval (proposal, Impact):
   - `uv add boto3`
   - `uv add --group dev "boto3-stubs[bedrock-agent,bedrock-agent-runtime,cloudformation,s3]"`
 
@@ -10,8 +10,8 @@
   - `uv sync` succeeds and `uv.lock` is updated
   - `uv run python -c "import boto3, mypy_boto3_bedrock_agent_runtime"` succeeds
   - `uv run pytest -q` is still green
-- [ ] 1.2 The `project-configuration` spec changed, so update the expected embedding id in `tests/unit/test_settings.py::test_defaults_when_no_overrides` to `amazon.titan-embed-text-v2:0`. Verify: that test fails against the current default.
-- [ ] 1.3 Write `tests/infra/test_knowledge_base_stack.py`, one test per scenario in the spec's infrastructure requirements:
+- [x] 1.2 The `project-configuration` spec changed, so update the expected embedding id in `tests/unit/test_settings.py::test_defaults_when_no_overrides` to `amazon.titan-embed-text-v2:0`. Verify: that test fails against the current default.
+- [x] 1.3 Write `tests/infra/test_knowledge_base_stack.py`, one test per scenario in the spec's infrastructure requirements:
   - documents bucket: public access blocked, encryption, TLS-only policy
   - vector bucket and index: float32/1024/cosine, non-filterable `AMAZON_BEDROCK_TEXT` and `AMAZON_BEDROCK_METADATA`
   - knowledge base: S3 Vectors storage, an embedding ARN ending in the configured model id, 1024 FLOAT32
@@ -21,7 +21,7 @@
   - no `AWS::OpenSearchServerless::*` in any stack
 
   Verify: the tests fail (no stack module yet).
-- [ ] 1.4 Write the `tests/unit/knowledge_base/` tests, using botocore `Stubber` and a fake sleep, one test per scenario of the spec's catalogue, ingestion, stack-output, retrieval and error requirements:
+- [x] 1.4 Write the `tests/unit/knowledge_base/` tests, using botocore `Stubber` and a fake sleep, one test per scenario of the spec's catalogue, ingestion, stack-output, retrieval and error requirements:
   - catalogue content; a missing file means no upload and no job
   - sidecar JSON per document
   - job complete, failed, and failed-docs cases; poll timeout
@@ -32,8 +32,8 @@
   - `ResourceNotFoundException` wrapped with its code
 
   Verify: the tests fail at import (no package yet).
-- [ ] 1.5 Write `tests/live/test_knowledge_base_live.py` with `@pytest.mark.live`: the four live scenarios, resolving the knowledge base from the stack outputs. Verify: `uv run pytest -q` deselects it, and `uv run pytest -q -m live --collect-only tests/live` collects 4 tests.
-- [ ] 1.6 Commit (`test: failing tests for knowledge base`). Verify: `uv run pytest -q` shows only the expected failures, with no collection errors other than missing modules.
+- [x] 1.5 Write `tests/live/test_knowledge_base_live.py` with `@pytest.mark.live`: the four live scenarios, resolving the knowledge base from the stack outputs. Verify: `uv run pytest -q` deselects it, and `uv run pytest -q -m live --collect-only tests/live` collects 4 tests.
+- [x] 1.6 Commit (`test: failing tests for knowledge base`). Verify: `uv run pytest -q` shows only the expected failures, with no collection errors other than missing modules.
 
 ## 2. Configuration default
 
