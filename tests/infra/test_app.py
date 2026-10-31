@@ -1,5 +1,7 @@
 """Spec: infrastructure-baseline (offline synthesis with CDK assertions)."""
 
+import hashlib
+import json
 import os
 from collections.abc import Iterator
 from typing import Any
@@ -94,18 +96,47 @@ def test_every_taggable_resource_carries_project_tags(default_app: cdk.App, budg
             checked += 1
             missing = {k: v for k, v in EXPECTED_TAGS.items() if tags.get(k) != v}
             assert not missing, f"{stack.stack_name}/{logical_id} missing {missing}"
-    assert checked >= 2  # the probe queue and the budget
+    assert checked >= 2  # the probe queue and the budget stack's custom-resource resources
 
 
-def test_budget_with_three_notifications_when_email_set(budget_app: cdk.App):
-    budget_stack = budget_app.node.find_child(BUDGET)
-    assert isinstance(budget_stack, cdk.Stack)
-    template = Template.from_stack(budget_stack)
-    template.resource_count_is("AWS::Budgets::Budget", 1)
+def sdk_call(props: dict[str, Any], key: str) -> dict[str, Any]:
+    """Decode a Custom::AWS Create/Delete call, replacing Refs (e.g. the account id) by name."""
+    raw = props[key]
+    if isinstance(raw, dict) and "Fn::Join" in raw:
+        sep, parts = raw["Fn::Join"]
+        raw = sep.join(p if isinstance(p, str) else f"<{p['Ref']}>" for p in parts)
+    call: dict[str, Any] = json.loads(raw)
+    return call
+
+
+def budget_resources(app: cdk.App) -> list[dict[str, Any]]:
+    found = []
+    for stack in stacks(app):
+        for res in Template.from_stack(stack).find_resources("Custom::AWS").values():
+            if sdk_call(res["Properties"], "Create")["service"].lower() == "budgets":
+                found.append(res["Properties"])
+    return found
+
+
+def test_budget_created_via_budgets_api_when_email_set(budget_app: cdk.App):
+    (props,) = budget_resources(budget_app)
+    create = sdk_call(props, "Create")
+    assert create["action"] == "CreateBudget"
+    params = create["parameters"]
+    name = params["Budget"]["BudgetName"]
+    expected_hash = hashlib.sha256(b"alerts@example.com:20").hexdigest()[:8]
+    assert name == f"rail-rights-agent-monthly-{expected_hash}"
+    assert create["physicalResourceId"] == {"id": name}
+    assert params["AccountId"] == "<AWS::AccountId>"
+    assert params["Budget"] == {
+        "BudgetName": name,
+        "BudgetType": "COST",
+        "TimeUnit": "MONTHLY",
+        "BudgetLimit": {"Amount": "20", "Unit": "USD"},
+    }
     subscriber = [{"SubscriptionType": "EMAIL", "Address": "alerts@example.com"}]
-
-    def notification(kind: str, threshold: int) -> dict[str, Any]:
-        return {
+    assert params["NotificationsWithSubscribers"] == [
+        {
             "Notification": {
                 "NotificationType": kind,
                 "ComparisonOperator": "GREATER_THAN",
@@ -114,29 +145,53 @@ def test_budget_with_three_notifications_when_email_set(budget_app: cdk.App):
             },
             "Subscribers": subscriber,
         }
+        for kind, threshold in [("ACTUAL", 50), ("ACTUAL", 80), ("FORECASTED", 100)]
+    ]
+    assert {t["Key"]: t["Value"] for t in params["ResourceTags"]} == EXPECTED_TAGS
 
-    template.has_resource_properties(
-        "AWS::Budgets::Budget",
-        {
-            "Budget": Match.object_like(
-                {
-                    "BudgetType": "COST",
-                    "TimeUnit": "MONTHLY",
-                    "BudgetLimit": {"Amount": 20, "Unit": "USD"},
-                }
-            ),
-            "NotificationsWithSubscribers": Match.array_equals(
-                [
-                    notification("ACTUAL", 50),
-                    notification("ACTUAL", 80),
-                    notification("FORECASTED", 100),
-                ]
-            ),
-        },
+    delete = sdk_call(props, "Delete")
+    assert delete["action"] == "DeleteBudget"
+    assert delete["parameters"] == {"AccountId": "<AWS::AccountId>", "BudgetName": name}
+
+
+def test_budget_limit_and_email_change_the_budget_name():
+    app = build_app(
+        load_settings(
+            {"RAILAGENT_BUDGET_EMAIL": "other@example.com", "RAILAGENT_BUDGET_LIMIT_USD": "35"}
+        )
+    )
+    (props,) = budget_resources(app)
+    params = sdk_call(props, "Create")["parameters"]
+    expected_hash = hashlib.sha256(b"other@example.com:35").hexdigest()[:8]
+    assert params["Budget"]["BudgetName"] == f"rail-rights-agent-monthly-{expected_hash}"
+    assert params["Budget"]["BudgetLimit"] == {"Amount": "35", "Unit": "USD"}
+
+
+def test_budget_policy_is_least_privilege(budget_app: cdk.App):
+    budget_stack = budget_app.node.find_child(BUDGET)
+    assert isinstance(budget_stack, cdk.Stack)
+    policies = Template.from_stack(budget_stack).find_resources("AWS::IAM::Policy")
+    actions: set[str] = set()
+    for policy in policies.values():
+        for statement in policy["Properties"]["PolicyDocument"]["Statement"]:
+            assert statement["Resource"] != "*"
+            acts = statement["Action"]
+            actions |= {acts} if isinstance(acts, str) else set(acts)
+    assert actions == {"budgets:ModifyBudget", "budgets:ViewBudget", "budgets:TagResource"}
+
+
+def test_budget_lambda_logs_to_managed_short_lived_log_group(budget_app: cdk.App):
+    budget_stack = budget_app.node.find_child(BUDGET)
+    assert isinstance(budget_stack, cdk.Stack)
+    template = Template.from_stack(budget_stack)
+    template.has_resource(
+        "AWS::Logs::LogGroup",
+        {"Properties": Match.object_like({"RetentionInDays": 7}), "DeletionPolicy": "Delete"},
     )
 
 
 def test_no_budget_when_email_unset(default_app: cdk.App):
     assert default_app.node.try_find_child(BUDGET) is None
+    assert budget_resources(default_app) == []
     for stack in stacks(default_app):
         Template.from_stack(stack).resource_count_is("AWS::Budgets::Budget", 0)

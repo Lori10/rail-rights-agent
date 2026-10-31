@@ -60,7 +60,7 @@
 
 ## 5. Budget via Budgets API custom resource (found in live check 6.3)
 
-- [ ] 5.1 Revise the budget tests in `tests/infra/test_app.py`. They should assert one `Custom::AWS` resource whose Create call is `Budgets:CreateBudget` with:
+- [x] 5.1 Revise the budget tests in `tests/infra/test_app.py`. They should assert one `Custom::AWS` resource whose Create call is `Budgets:CreateBudget` with:
   - a monthly COST budget ($20 default)
   - the three notifications to the configured address
   - the four project `ResourceTags`
