@@ -128,7 +128,7 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
 - **Local Python is 3.11.** uv downloads 3.12 on the first `uv sync` because of `.python-version` and `requires-python = ">=3.12,<3.13"`.
 - **Budgets API on the free plan:** not yet confirmed. → The live task group verifies it. If the free plan blocks Budgets, the stack is dropped and the gap is recorded here.
 - **Memory on the dev machine.** The host has 5.8 GB RAM. Under the WSL default (2.9 GB, 1 GB swap), the jsii Node process during CDK synth and mypy over aws-cdk-lib were OOM-killed (exit 137). → `.wslconfig` was raised to 4 GB RAM and 8 GB swap. This is environment-only; nothing in the repo changed for it.
-- **First mypy run is slow.** Without a cache it took 12.7 min and 2.8 GB locally, mostly analysing aws-cdk-lib. A cached run takes about 3 s. CI starts without a cache every time. → If the `checks` job becomes slow, cache `.mypy_cache` in CI keyed on `uv.lock` (decided in task 4.2).
+- **First mypy run is slow.** Without a cache it took 12.7 min and 2.8 GB locally, mostly analysing aws-cdk-lib. A cached run takes about 3 s. CI starts without a cache, but on the GitHub runner the whole `checks` job took 71 s (first run, 2026-10-31), so no CI cache was added. The slowness is local and memory-bound. → Revisit only if the CI job time grows.
 - **Known gaps found during testing:**
   - An empty `RAILAGENT_BUDGET_EMAIL` counts as unset (no budget) rather than an error. The empty-value rule applies to the required values only, so `.env.example` can carry the blank line.
   - `scripts/weakened_tests.py`, which the devflow template manages, is excluded from ruff, because it exceeds this repo's 100-character line length.
