@@ -67,7 +67,7 @@
   - the hashed name
 
   Also assert that Delete is `Budgets:DeleteBudget`, and that there is no budget custom resource when the email is unset. The user approved this test edit (the design changed, not the spec). Verify: the tests fail against the current `CfnBudget` stack. Commit (`test: assert budget via Budgets API custom resource`).
-- [ ] 5.2 Reimplement `infra/stacks/budget.py` with `AwsCustomResource`, per D7 (least-privilege policy; managed log group with 1-week retention, destroyed on delete). Verify: `tests/infra/test_app.py` passes. Commit.
+- [x] 5.2 Reimplement `infra/stacks/budget.py` with `AwsCustomResource`, per D7 (least-privilege policy; managed log group with 1-week retention, destroyed on delete). Verify: `tests/infra/test_app.py` passes. Commit.
 - [ ] 5.3 Run `/devflow:verify` and confirm PASS.
 
 ## 6. Live checks (user runs or approves; each step needs explicit go-ahead)
