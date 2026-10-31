@@ -10,7 +10,7 @@ The repo has the devflow scaffolding (CI workflow, `scripts/check.sh`, OpenSpec)
 - uv project for Python 3.12 (`pyproject.toml`, `uv.lock`, `.python-version`) with ruff (lint + format), mypy (strict) and pytest configured.
 - Typed settings module: primary model id (Claude Haiku 4.5 EU inference profile), comparison model id (Nova 2 Lite EU inference profile), embedding model id, AWS region and AWS profile, all overridable by environment variables, validated at load time, with no model id hardcoded anywhere else. Any region other than `eu-north-1` is rejected.
 - CDK (Python) app skeleton: `cdk.json`, an app entry point and one baseline stack. Account and region come from settings, a project tag set goes on every resource, and the CDK CLI version is pinned. Plus one-command deploy and destroy scripts.
-- Optional budget stack: a monthly AWS Budget with email alerts. Only synthesised when an alert email is configured; the address is never committed.
+- Optional budget stack: a monthly AWS Budget with email alerts, created through the Budgets API by a CDK custom resource (CloudFormation in eu-north-1 has no Budget resource type). Only synthesised when an alert email is configured; the address is never committed.
 - Quality gates: `scripts/check.sh` gains a format check and a mypy gate next to the existing ruff, pytest, OpenSpec and gitleaks gates. CI keeps running `check.sh`, which now has a lockfile to `uv sync --frozen` against.
 
 **New dependencies (need approval):**
@@ -24,6 +24,7 @@ The repo has the devflow scaffolding (CI workflow, `scripts/check.sh`, OpenSpec)
 - The final live task group, which you run or approve, has two steps:
   - A first `cdk deploy` of the baseline stack, which only contains CDK metadata, then `cdk destroy`: $0.
   - Optionally, deploying the budget stack. AWS Budgets are free for the first two budgets per account: $0.
+  - The budget's custom resource runs a short-lived Lambda at deploy and destroy only: about $0.
 
 ## Capabilities
 

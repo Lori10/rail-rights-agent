@@ -58,11 +58,23 @@
 - [x] 4.3 Add a short "Development" section to the README covering `uv sync`, `scripts/check.sh`, the configuration variables, and deploy/destroy. Create the README if it doesn't exist; `portfolio-docs` will expand it. Verify: every command in it runs as written offline, except deploy/destroy.
 - [x] 4.4 Run `/devflow:verify` and confirm PASS. Record any known gaps in design.md under Risks / Trade-offs.
 
-## 5. Live checks (user runs or approves; each step needs explicit go-ahead)
+## 5. Budget via Budgets API custom resource (found in live check 6.3)
 
-- [x] 5.1 With fresh `railagent` credentials, run `scripts/deploy.sh` (no budget email). Verify: `RailRightsAgent-Baseline` exists in eu-north-1 with the four stack tags (`aws cloudformation describe-stacks`). Cost: $0.
-- [x] 5.2 Run `scripts/destroy.sh`. Verify: the stack is gone. Cost: $0.
-- [ ] 5.3 Optional: set `RAILAGENT_BUDGET_EMAIL` locally and run `scripts/deploy.sh`. Verify: the budget appears in the Budgets console with three notifications, and the confirmation email arrives. The budget stays deployed. Cost: $0. If the free plan rejects Budgets, record that in design.md and remove the budget stack through `/opsx:update`.
+- [ ] 5.1 Revise the budget tests in `tests/infra/test_app.py`. They should assert one `Custom::AWS` resource whose Create call is `Budgets:CreateBudget` with:
+  - a monthly COST budget ($20 default)
+  - the three notifications to the configured address
+  - the four project `ResourceTags`
+  - the hashed name
+
+  Also assert that Delete is `Budgets:DeleteBudget`, and that there is no budget custom resource when the email is unset. The user approved this test edit (the design changed, not the spec). Verify: the tests fail against the current `CfnBudget` stack. Commit (`test: assert budget via Budgets API custom resource`).
+- [ ] 5.2 Reimplement `infra/stacks/budget.py` with `AwsCustomResource`, per D7 (least-privilege policy; managed log group with 1-week retention, destroyed on delete). Verify: `tests/infra/test_app.py` passes. Commit.
+- [ ] 5.3 Run `/devflow:verify` and confirm PASS.
+
+## 6. Live checks (user runs or approves; each step needs explicit go-ahead)
+
+- [x] 6.1 With fresh `railagent` credentials, run `scripts/deploy.sh` (no budget email). Verify: `RailRightsAgent-Baseline` exists in eu-north-1 with the four stack tags (`aws cloudformation describe-stacks`). Cost: $0.
+- [x] 6.2 Run `scripts/destroy.sh`. Verify: the stack is gone. Cost: $0.
+- [ ] 6.3 Set `RAILAGENT_BUDGET_EMAIL` locally and run `scripts/deploy.sh`. Verify: `aws budgets describe-budgets` shows the budget with a $20 limit, `describe-notifications-for-budget` shows the three notifications, and the confirmation email arrives. The budget stays deployed. Cost: about $0.
 
 ## Workflow follow-up
 

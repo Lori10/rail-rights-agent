@@ -86,17 +86,22 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
 - **Why:** Mirrors how OpenSpec is pinned. No global install, and it gives reproducible deploys.
 - **Rejected:** a Makefile, which is another tool for two commands. A global `npm i -g aws-cdk`, which is unpinned.
 
-### D7. Budget: opt-in `BudgetStack`, default $20/month
-- **Choice:**
-  - `build_app` adds a `RailRightsAgent-Budget` stack with `aws_budgets.CfnBudget` only when `budget_email` is set.
-  - The budget is monthly, of type COST, with a $20 limit by default (configurable).
-  - Notifications: ACTUAL > 50%, ACTUAL > 80%, FORECASTED > 100%, each to an EMAIL subscriber.
-  - The budget is tagged like everything else (CfnBudget supports `ResourceTags`).
-- **Why:** On the free plan, using up the credit closes the account. A budget gives early warning, costs nothing (the first two budgets are free), and has no idle cost.
+### D7. Budget: opt-in `BudgetStack` that calls the Budgets API through a CDK custom resource, default $20/month
+- **Choice:** the budget stack still exists only when `budget_email` is set. Instead of `aws_budgets.CfnBudget`, it uses `custom_resources.AwsCustomResource`:
+  - **Create:** `Budgets:CreateBudget` with a monthly COST budget of `budget_limit_usd` USD; notifications ACTUAL > 50%, ACTUAL > 80% and FORECASTED > 100%, each to an EMAIL subscriber; and the four project tags as `ResourceTags`.
+  - **Delete:** `Budgets:DeleteBudget`.
+  - **Name:** `rail-rights-agent-monthly-<first 8 hex of sha256(email:limit)>`. The custom resource uses the name as its physical id, so changing the email or limit creates a new budget, then CloudFormation deletes the old one. No `onUpdate` logic is needed.
+  - **IAM:** least privilege, `budgets:ModifyBudget`, `budgets:ViewBudget` and `budgets:TagResource` on `arn:aws:budgets::<account>:budget/<name>`.
+  - **Logs:** the custom resource Lambda writes to a log group defined in the stack, with 1-week retention, removed on destroy. Otherwise Lambda would create an untagged log group that outlives the stack.
+- **Why:** CloudFormation in eu-north-1 does not offer `AWS::Budgets::Budget` (`TypeNotFoundException`, found in live task 6.3 on 2026-10-31). The RegionFloor SCP blocks CloudFormation in every other region, but the Budgets API works from eu-north-1. A custom resource keeps the budget in IaC and inside one-command deploy and destroy. On the free plan, using up the credit closes the account, so early warning matters.
 - **Rejected:**
-  - Creating the budget by hand in the console: not IaC.
+  - `CfnBudget`: not available in this region.
+  - A budget made in the console or with a one-off CLI call: not IaC.
+  - A hand-written Lambda-backed custom resource: `AwsCustomResource` already provides the SDK call, the IAM policy and the Lambda.
+  - Implementing `onUpdate`: notifications and subscribers need separate API calls each. Replacing the budget by changing its name is simpler.
   - Budget actions that auto-stop resources: too much machinery for this project.
   - Putting the budget in the baseline stack: the address would have to exist for every synthesis.
+- **Cost:** the custom resource Lambda runs only at deploy and destroy, about $0. The log group holds a few KB. The first two budgets are free.
 - **Trade-off:** `destroy.sh --all` removes the budget too. That is acceptable, because a destroyed system has nothing to bill.
 
 ### D8. Quality gates: extend `check.sh`, keep CI unchanged where possible
@@ -126,7 +131,8 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
 - **CDK assertions need Node at test time.** Locally there is Node 24; in CI, Node 20. jsii supports both. → If jsii warns about an untested Node version, set `JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1` in the pytest config, not in CI only.
 - **CLI version drift.** The pinned `aws-cdk` CLI must be at least as new as the cloud assembly schema of `aws-cdk-lib`. → Pin both at the current releases. Dependabot bumps the library; the CLI pin is bumped manually. A synth-time schema error is loud.
 - **Local Python is 3.11.** uv downloads 3.12 on the first `uv sync` because of `.python-version` and `requires-python = ">=3.12,<3.13"`.
-- **Budgets API on the free plan:** not yet confirmed. → The live task group verifies it. If the free plan blocks Budgets, the stack is dropped and the gap is recorded here.
+- **The custom resource Lambda calls a global API (Budgets) from eu-north-1.** The CLI `describe-budgets` from eu-north-1 succeeded, so the SCP does not block it. → Live task 6.3 verifies it end to end.
+- **Budget tags are set by an API call, not by CloudFormation,** so the resource-walking tag test cannot see them. → The budget test asserts the four `ResourceTags` in the create call directly.
 - **Memory on the dev machine.** The host has 5.8 GB RAM. Under the WSL default (2.9 GB, 1 GB swap), the jsii Node process during CDK synth and mypy over aws-cdk-lib were OOM-killed (exit 137). → `.wslconfig` was raised to 4 GB RAM and 8 GB swap. This is environment-only; nothing in the repo changed for it.
 - **First mypy run is slow.** Without a cache it took 12.7 min and 2.8 GB locally, mostly analysing aws-cdk-lib. A cached run takes about 3 s. CI starts without a cache, but on the GitHub runner the whole `checks` job took 71 s (first run, 2026-10-31), so no CI cache was added. The slowness is local and memory-bound. → Revisit only if the CI job time grows.
 - **Known gaps found during testing:**
@@ -141,7 +147,7 @@ The AWS account is on the free plan ($100 credit until 2027-04-28), and a Region
 - Live group:
   1. `scripts/deploy.sh` (baseline only, no budget email), then check the stack and tags in CloudFormation.
   2. `scripts/destroy.sh`, then check the stack is gone.
-  3. Optionally, set `RAILAGENT_BUDGET_EMAIL` and deploy, which leaves the budget in place.
+  3. Optionally, set `RAILAGENT_BUDGET_EMAIL` and deploy. The budget stack creates the budget through the Budgets API and stays deployed.
 - **Rollback:** `scripts/destroy.sh`.
 
 ## Open Questions
