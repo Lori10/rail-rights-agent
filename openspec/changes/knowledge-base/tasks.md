@@ -42,11 +42,11 @@
 
 ## 3. Knowledge-base stack
 
-- [ ] 3.1 Implement `infra/stacks/knowledge_base.py` per design D1–D5 and D7: documents bucket, `CfnVectorBucket`, `CfnIndex`, service role with an explicit dependency, `CfnKnowledgeBase`, `CfnDataSource`, and the outputs. Wire it into `build_app`. Verify:
+- [x] 3.1 Implement `infra/stacks/knowledge_base.py` per design D1–D5 and D7: documents bucket, `CfnVectorBucket`, `CfnIndex`, service role with an explicit dependency, `CfnKnowledgeBase`, `CfnDataSource`, and the outputs. Wire it into `build_app`. Verify:
   - `tests/infra/test_knowledge_base_stack.py` passes
   - the existing `tests/infra/test_app.py` passes unchanged, including the every-resource tag walk over the new stack
-- [ ] 3.2 Verify `scripts/deploy.sh --dry-run` synthesises all stacks offline with no credentials and no `docs/source/` folder (rename it temporarily).
-- [ ] 3.3 Commit (`feat: knowledge base stack on S3 Vectors`).
+- [x] 3.2 Verify `scripts/deploy.sh --dry-run` synthesises all stacks offline with no credentials and no `docs/source/` folder (rename it temporarily).
+- [x] 3.3 Commit (`feat: knowledge base stack on S3 Vectors`).
 
 ## 4. Ingestion and retrieval
 
