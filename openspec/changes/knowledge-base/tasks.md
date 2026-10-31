@@ -37,8 +37,8 @@
 
 ## 2. Configuration default
 
-- [ ] 2.1 Change the embedding default in `src/rail_rights_agent/settings.py` and in `.env.example` to `amazon.titan-embed-text-v2:0`. Verify: `tests/unit/test_settings.py` and `test_no_hardcoded_model_ids.py` pass.
-- [ ] 2.2 Commit (`feat: default embedding model to Titan Text Embeddings V2`).
+- [x] 2.1 Change the embedding default in `src/rail_rights_agent/settings.py` and in `.env.example` to `amazon.titan-embed-text-v2:0`. Verify: `tests/unit/test_settings.py` and `test_no_hardcoded_model_ids.py` pass.
+- [x] 2.2 Commit (`feat: default embedding model to Titan Text Embeddings V2`).
 
 ## 3. Knowledge-base stack
 
