@@ -3,6 +3,7 @@
 Bilingual (DE/EN) AI agent on AWS Bedrock AgentCore that explains rail passenger rights under EU Regulation 2021/782 and Deutsche Bahn conditions of carriage, checks train delays, computes compensation and submits a claim after explicit confirmation.
 
 ## Where things are
+- `docs/ROADMAP.md`: the milestone plan across changes (order, scope, cost, status) and decisions agreed for later milestones. Start each new change from its entry; set its status to done after landing.
 - `openspec/specs/<capability>/spec.md`: what the system must do. Read the relevant spec before changing a capability.
 - `openspec/changes/<name>/`: open changes; each records its decisions in its own `design.md`. Archived changes keep the design history.
 - `CONTRIBUTING.md`: the change loop, step by step.
