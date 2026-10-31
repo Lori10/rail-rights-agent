@@ -42,6 +42,23 @@ Set `RAILAGENT_BUDGET_EMAIL` (never commit it) to also deploy a monthly cost bud
 alerts at 50 % and 80 % of actual and 100 % of forecast spend (`RAILAGENT_BUDGET_LIMIT_USD`,
 default 20).
 
+### Knowledge base
+
+The knowledge base (Bedrock Knowledge Base on S3 Vectors, Titan Text Embeddings V2) holds
+Regulation (EU) 2021/782 in English and German and the DB conditions of carriage. The source PDFs
+are not committed: put `eu-2021-782-en.pdf`, `eu-2021-782-de.pdf` and
+`db-befoerderungsbedingungen-de.pdf` in `docs/source/`. After `scripts/deploy.sh`, ingest them,
+then query. Both commands are live and use the configured profile:
+
+```bash
+uv run python -m rail_rights_agent.knowledge_base --help
+uv run python -m rail_rights_agent.knowledge_base ingest       # upload + ingestion job, ~minutes
+uv run python -m rail_rights_agent.knowledge_base retrieve "Entschädigung bei 60 Minuten Verspätung?" --language de
+uv run pytest -q -m live tests/live                            # live smoke test (billed, cents)
+```
+
+Re-run `ingest` after replacing a PDF. `scripts/destroy.sh` deletes the documents and vectors too.
+
 ## How to contribute
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the spec-driven change loop.

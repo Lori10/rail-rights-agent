@@ -50,13 +50,13 @@
 
 ## 4. Ingestion and retrieval
 
-- [ ] 4.1 Implement `catalogue.py`, `errors.py` and `retrieval.py` per D6, D8 and D9. Verify: the catalogue and retrieval unit tests pass.
-- [ ] 4.2 Implement `ingest.py` and `aws.py` per D5, D8 and D9. Verify: the ingestion and stack-output unit tests pass.
-- [ ] 4.3 Implement `__main__.py` with the `ingest` and `retrieve` subcommands. Verify:
+- [x] 4.1 Implement `catalogue.py`, `errors.py` and `retrieval.py` per D6, D8 and D9. Verify: the catalogue and retrieval unit tests pass.
+- [x] 4.2 Implement `ingest.py` and `aws.py` per D5, D8 and D9. Verify: the ingestion and stack-output unit tests pass.
+- [x] 4.3 Implement `__main__.py` with the `ingest` and `retrieve` subcommands. Verify:
   - `uv run python -m rail_rights_agent.knowledge_base --help` lists both subcommands
   - `retrieve ""` exits 1 with the empty-question message and makes no AWS call (run it with no credentials)
-- [ ] 4.4 Extend the README "Development" section with the ingest and retrieve commands and the deploy → ingest order. Verify: the `--help` command runs exactly as written.
-- [ ] 4.5 Commit (`feat: knowledge base ingestion and retrieval client`).
+- [x] 4.4 Extend the README "Development" section with the ingest and retrieve commands and the deploy → ingest order. Verify: the `--help` command runs exactly as written.
+- [x] 4.5 Commit (`feat: knowledge base ingestion and retrieval client`).
 
 ## 5. Gate
 
