@@ -2,7 +2,7 @@
 
 ## 1. Project scaffold and failing tests (red by design)
 
-- [ ] 1.1 Add `pyproject.toml` with:
+- [x] 1.1 Add `pyproject.toml` with:
   - `requires-python = ">=3.12,<3.13"`
   - the src-layout package `rail_rights_agent` (empty `__init__.py`)
   - dependency groups `dev` (ruff, mypy, pytest) and `infra` (aws-cdk-lib, constructs), both in `default-groups`
@@ -11,7 +11,7 @@
   Also add `.python-version` (3.12) and `uv.lock`.
 
   Verify: `uv sync` succeeds and `uv run python -V` prints 3.12.x.
-- [ ] 1.2 Write `tests/unit/test_settings.py` covering every `project-configuration` scenario:
+- [x] 1.2 Write `tests/unit/test_settings.py` covering every `project-configuration` scenario:
   - defaults
   - primary-model override
   - profile override
@@ -21,8 +21,8 @@
   - frozen assignment raises
 
   Verify: the tests fail (the settings module doesn't exist yet).
-- [ ] 1.3 Write `tests/unit/test_no_hardcoded_model_ids.py`, the source scan from D9. Verify: it fails until the settings module exists, or passes trivially. Either way, record which.
-- [ ] 1.4 Write `tests/infra/test_app.py` covering every testable `infrastructure-baseline` scenario:
+- [x] 1.3 Write `tests/unit/test_no_hardcoded_model_ids.py`, the source scan from D9. Verify: it fails until the settings module exists, or passes trivially. Either way, record which.
+- [x] 1.4 Write `tests/infra/test_app.py` covering every testable `infrastructure-baseline` scenario:
   - all stacks in eu-north-1
   - probe resource carries the four tags
   - every taggable resource in every stack carries the tags
@@ -31,8 +31,8 @@
   - no budget when it is unset
 
   Uses one module-scoped synth fixture. Verify: the tests fail (no `infra` package yet).
-- [ ] 1.5 Write `tests/unit/test_quality_config.py` asserting that the `live` marker is registered and the default `addopts` excludes it. Add a sample `@pytest.mark.live` test that would fail if run. Verify: `uv run pytest -q` deselects it, and `uv run pytest -q -m live` selects it.
-- [ ] 1.6 Commit the group (`test: failing tests for foundation`). Verify: `uv run pytest -q` shows the expected failures, with no collection errors other than missing modules.
+- [x] 1.5 Write `tests/unit/test_quality_config.py` asserting that the `live` marker is registered and the default `addopts` excludes it. Add a sample `@pytest.mark.live` test that would fail if run. Verify: `uv run pytest -q` deselects it, and `uv run pytest -q -m live` selects it.
+- [x] 1.6 Commit the group (`test: failing tests for foundation`). Verify: `uv run pytest -q` shows the expected failures, with no collection errors other than missing modules.
 
 ## 2. Configuration
 
