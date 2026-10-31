@@ -1,0 +1,58 @@
+[project]
+name = "rail-rights-agent"
+version = "0.1.0"
+description = "Bilingual (DE/EN) agent on AWS Bedrock AgentCore for EU rail passenger rights and DB compensation claims."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rail_rights_agent"]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4",
+    "pytest>=9.2",
+    "ruff>=0.17",
+]
+infra = [
+    "aws-cdk-lib>=2.275",
+    "constructs>=10.8",
+]
+
+[tool.uv]
+default-groups = ["dev", "infra"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# scripts/weakened_tests.py is managed by the devflow template (copier); don't restyle it here.
+extend-exclude = ["cdk.out", "scripts/weakened_tests.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rail_rights_agent", "infra", "tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "infra", "tests"]
+mypy_path = "src"
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not live'"
+markers = ["live: calls live or billed services; excluded from the default run"]
+pythonpath = ["."]

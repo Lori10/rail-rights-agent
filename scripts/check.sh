@@ -69,6 +69,8 @@ for svc in $SERVICES; do
 done
 
 gate "lint" uv run ruff check .
+gate "format" uv run ruff format --check .
+gate "types (mypy strict)" uv run mypy
 
 if [[ $services_up -eq 1 ]]; then
   gate "tests" uv run pytest -q
