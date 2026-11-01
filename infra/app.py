@@ -6,7 +6,9 @@ import aws_cdk as cdk
 
 from infra.stacks.baseline import BaselineStack
 from infra.stacks.budget import BudgetStack
+from infra.stacks.knowledge_base import KnowledgeBaseStack
 from infra.tagging import apply_project_tags
+from rail_rights_agent.knowledge_base.deployment import STACK_NAME as KNOWLEDGE_BASE_STACK
 from rail_rights_agent.settings import Settings, load_settings
 
 STACK_PREFIX = "RailRightsAgent"
@@ -17,6 +19,9 @@ def build_app(settings: Settings, outdir: str | None = None) -> cdk.App:
     app = cdk.App(outdir=outdir)
     env = cdk.Environment(account=os.environ.get("CDK_DEFAULT_ACCOUNT"), region=settings.aws_region)
     BaselineStack(app, f"{STACK_PREFIX}-Baseline", env=env)
+    KnowledgeBaseStack(
+        app, KNOWLEDGE_BASE_STACK, embedding_model_id=settings.embedding_model_id, env=env
+    )
     if settings.budget_email:
         BudgetStack(
             app,

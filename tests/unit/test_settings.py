@@ -17,7 +17,7 @@ def test_defaults_when_no_overrides():
     s = load_settings({})
     assert s.primary_model_id == "eu.anthropic.claude-haiku-4-5-20251001-v1:0"
     assert s.comparison_model_id == "eu.amazon.nova-2-lite-v1:0"
-    assert s.embedding_model_id == "cohere.embed-v4:0"
+    assert s.embedding_model_id == "amazon.titan-embed-text-v2:0"
     assert s.aws_region == "eu-north-1"
     assert s.aws_profile == "railagent"
 

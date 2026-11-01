@@ -14,7 +14,7 @@ ALLOWED_REGION = "eu-north-1"
 _DEFAULTS = {
     "RAILAGENT_PRIMARY_MODEL_ID": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
     "RAILAGENT_COMPARISON_MODEL_ID": "eu.amazon.nova-2-lite-v1:0",
-    "RAILAGENT_EMBEDDING_MODEL_ID": "cohere.embed-v4:0",
+    "RAILAGENT_EMBEDDING_MODEL_ID": "amazon.titan-embed-text-v2:0",
     "RAILAGENT_AWS_REGION": ALLOWED_REGION,
     "RAILAGENT_AWS_PROFILE": "railagent",
 }
