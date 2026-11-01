@@ -10,7 +10,7 @@ Gives the application and the infrastructure code one validated source for model
 When no overrides are set, the configuration SHALL provide these defaults:
 - primary model `eu.anthropic.claude-haiku-4-5-20251001-v1:0`
 - comparison model `eu.amazon.nova-2-lite-v1:0`
-- embedding model `cohere.embed-v4:0`
+- embedding model `amazon.titan-embed-text-v2:0`
 - region `eu-north-1`
 - AWS profile `railagent`
 

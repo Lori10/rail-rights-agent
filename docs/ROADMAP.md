@@ -14,8 +14,8 @@ re-checks them. Design target: ~$0 idle (pay-per-use only).
 | # | Change | Branch | Depends on | Status |
 |---|---|---|---|---|
 | 1 | `foundation` | `feat/foundation` | – | done ([archive](../openspec/changes/archive/2026-10-31-foundation/)) |
-| 2 | `knowledge-base` | `feat/knowledge-base` | 1 | next |
-| 3 | `tools` | `feat/tools` | 1 | planned (independent of 2) |
+| 2 | `knowledge-base` | `feat/knowledge-base` | 1 | done ([archive](../openspec/changes/archive/2026-11-01-knowledge-base/)) |
+| 3 | `tools` | `feat/tools` | 1 | next |
 | 4 | `agent-local` | `feat/agent-local` | 2, 3 | planned |
 | 5 | `agentcore` | `feat/agentcore` | 4 | planned |
 | 6 | `guardrails` | `feat/guardrails` | 5 | planned |
@@ -40,7 +40,7 @@ Learned / carried forward:
 - The default embedding model `cohere.embed-v4:0` is provisional; `knowledge-base` decides.
 - The first mypy run over aws-cdk-lib is slow and memory-hungry locally (see README); CI is fine.
 
-## 2. knowledge-base
+## 2. knowledge-base (done)
 
 S3 bucket for `docs/source/` (uploaded by CDK), S3 Vectors bucket + index, Bedrock Knowledge Base
 with a data source and chunking strategy, an ingestion command, a retrieval client in `src/`,
@@ -51,6 +51,19 @@ compensation and Erstattung in DE and EN.
 - Verify S3 Vectors and KB APIs/CFN types against current AWS docs before designing.
 - Live: S3, S3 Vectors, KB ingestion, embeddings, Retrieve. Cost: < ~$0.50 total (3 PDFs,
   a few hundred thousand tokens; storage cents/month).
+
+Learned / carried forward:
+- Embeddings: Titan Text Embeddings V2 (1024-dim float32, cosine), now the default. Cohere embed
+  v4 is inference-profile only in eu-north-1 and not supported as a KB embedding model there.
+  DE and EN retrieval of Art. 19 works well (scores ~0.75–0.79).
+- The PDFs are uploaded by `python -m rail_rights_agent.knowledge_base ingest`, not by CDK
+  (`docs/source/` is gitignored). After a deploy, run `ingest` (~40 s); passages carry document,
+  language and page number, and retrieval can filter by `language`.
+- Stack `RailRightsAgent-KnowledgeBase` is destroyed, not left running; `agent-local` redeploys
+  and re-ingests it (~2 min). Its ids come from the stack outputs (`resolve_stack_outputs`).
+- `aws.clients` builds sessions from the `railagent` profile; AgentCore Runtime (5) needs a
+  profile-less path. `botocore[crt]` (dev only) is needed to read `aws login` credentials.
+- `destroy` leaves the auto-delete Lambda's log group; delete it by hand.
 
 ## 3. tools
 
