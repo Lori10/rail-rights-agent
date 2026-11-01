@@ -16,5 +16,5 @@ rules:
   tasks:
     - First task group writes failing tests for the spec scenarios
     - Never edit an existing test to make it pass unless the spec changed
-    - The last offline task group ends with a task to run /devflow:verify and confirm PASS
+    - The last offline task group includes a task to update docs/ARCHITECTURE.md for what the change adds or alters (status table, diagram, services, cost), then ends with a task to run /devflow:verify and confirm PASS
     - Live/billed checks (integration tests, evals, deploys) are a separate final task group, run or approved by the user
