@@ -59,6 +59,12 @@ uv run pytest -q -m live tests/live                            # live smoke test
 
 Re-run `ingest` after replacing a PDF. `scripts/destroy.sh` deletes the documents and vectors too.
 
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, AWS services and why each was chosen.
+- [docs/INTERVIEW.md](docs/INTERVIEW.md): interview questions and answers about the project.
+- [docs/ROADMAP.md](docs/ROADMAP.md): milestone plan.
+
 ## How to contribute
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the spec-driven change loop.
