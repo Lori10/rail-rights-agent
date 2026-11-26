@@ -1,5 +1,6 @@
 """Idempotent claim submission bound to a prior compensation result (design D4)."""
 
+import hashlib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -12,6 +13,7 @@ from rail_rights_agent.tools.compensation import (
     Compensation,
     CompensationRequest,
     calculate_compensation,
+    round_cents,
 )
 from rail_rights_agent.tools.delays import normalise_train_number
 from rail_rights_agent.tools.errors import ClaimRejected, ToolError, ValidationError
@@ -57,18 +59,31 @@ def _validate(request: ClaimRequest) -> None:
     normalise_train_number(request.train_number)
 
 
+def claim_id_for(request: ClaimRequest, token: str) -> str:
+    """The claim id: the token plus who travelled where, so equal amounts never collide (D4)."""
+    identity = "|".join(
+        [
+            token,
+            normalise_train_number(request.train_number),
+            request.travel_date.isoformat(),
+            request.email.strip().lower(),
+        ]
+    )
+    return CLAIM_ID_PREFIX + hashlib.sha256(identity.encode()).hexdigest()[:16].upper()
+
+
 def claim_item(request: ClaimRequest, result: Compensation, now: datetime) -> dict[str, Any]:
     """The stored record: every field the claim-submission spec lists."""
     comp = request.compensation
     token = result.confirmation_token or request.confirmation_token
     item: dict[str, Any] = {
-        "claim_id": {"S": f"{CLAIM_ID_PREFIX}{token}"},
+        "claim_id": {"S": claim_id_for(request, token)},
         "confirmation_token": {"S": token},
         "train_number": {"S": normalise_train_number(request.train_number)},
         "travel_date": {"S": request.travel_date.isoformat()},
         "ticket_kind": {"S": comp.ticket_kind.value},
         "travel_class": {"N": str(comp.travel_class)},
-        "ticket_price_eur": {"N": str(comp.ticket_price_eur)},
+        "ticket_price_eur": {"N": str(round_cents(comp.ticket_price_eur))},
         "delay_minutes": {"N": str(comp.delay_minutes)},
         "cause": {"S": comp.cause.value},
         "informed_before_purchase": {"BOOL": comp.informed_before_purchase},
@@ -110,7 +125,10 @@ class ClaimStore:
         return True
 
     def get(self, claim_id: str) -> Mapping[str, Any] | None:
-        response = self._client.get_item(TableName=self._table, Key={"claim_id": {"S": claim_id}})
+        # Strongly consistent: this read follows a failed conditional write of the same key.
+        response = self._client.get_item(
+            TableName=self._table, Key={"claim_id": {"S": claim_id}}, ConsistentRead=True
+        )
         return response.get("Item")
 
 

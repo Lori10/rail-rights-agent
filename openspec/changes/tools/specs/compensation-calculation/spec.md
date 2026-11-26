@@ -123,7 +123,7 @@ When the payout is above zero, the result SHALL include a confirmation token der
 - **THEN** the two tokens differ
 
 ### Requirement: Invalid inputs are rejected
-The calculation SHALL reject a negative or zero ticket price, a negative delay, a travel class other than 1 or 2, and an unknown ticket kind or cause, with an error naming the invalid field.
+The calculation SHALL reject a negative, zero, non-finite or implausibly large ticket price, a negative delay, a travel class other than 1 or 2, and an unknown ticket kind or cause, with an error naming the invalid field.
 
 #### Scenario: Negative delay
 - **WHEN** compensation is computed with a delay of -5 minutes
@@ -131,6 +131,10 @@ The calculation SHALL reject a negative or zero ticket price, a negative delay, 
 
 #### Scenario: Zero price
 - **WHEN** compensation is computed with a ticket price of €0
+- **THEN** it fails with an error naming the price
+
+#### Scenario: Non-finite price
+- **WHEN** compensation is computed with a ticket price of NaN or infinity
 - **THEN** it fails with an error naming the price
 
 ### Requirement: Compensation properties hold for all inputs

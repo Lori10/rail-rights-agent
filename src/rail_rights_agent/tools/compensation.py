@@ -25,6 +25,8 @@ DELAY_25_PERCENT = 60
 DELAY_50_PERCENT = 120
 # DB B.13.1 and C.3.10.1: flat rates are capped at 25 % of the ticket price.
 FLAT_RATE_CAP_PERCENT = 25
+# No rail ticket costs this much; anything above is a mistyped input, not a price.
+MAX_PRICE_EUR = Decimal("100000")
 
 
 class TicketKind(StrEnum):
@@ -137,6 +139,11 @@ RETURN_NOTE = "Return ticket without a per-leg price: compensation is based on h
 
 
 def _validate(request: CompensationRequest) -> None:
+    if not request.ticket_price_eur.is_finite() or request.ticket_price_eur > MAX_PRICE_EUR:
+        raise ValidationError(
+            f"ticket_price_eur must be a finite amount up to {MAX_PRICE_EUR}, got "
+            f"{request.ticket_price_eur}"
+        )
     if request.ticket_price_eur <= 0:
         raise ValidationError(f"ticket_price_eur must be positive, got {request.ticket_price_eur}")
     if request.delay_minutes < 0:
@@ -145,7 +152,7 @@ def _validate(request: CompensationRequest) -> None:
         raise ValidationError(f"travel_class must be 1 or 2, got {request.travel_class}")
 
 
-def _cents(amount: Decimal) -> Decimal:
+def round_cents(amount: Decimal) -> Decimal:
     """Round "kaufmännisch" (half up) to cents, as DB A.9.2.1 requires."""
     return amount.quantize(CENT, rounding=ROUND_HALF_UP)
 
@@ -161,7 +168,7 @@ def _not_eligible(
         eligible=False,
         computable=computable,
         percentage=0,
-        base_price_eur=_cents(request.ticket_price_eur),
+        base_price_eur=round_cents(request.ticket_price_eur),
         compensation_eur=Decimal("0.00"),
         payout_eur=Decimal("0.00"),
         reason=reason,
@@ -175,7 +182,7 @@ def confirmation_token(request: CompensationRequest, payout_eur: Decimal) -> str
     """Digest binding the payout to the inputs that produced it (design D2; not a secret)."""
     canonical = json.dumps(
         {
-            "ticket_price_eur": str(_cents(request.ticket_price_eur)),
+            "ticket_price_eur": str(round_cents(request.ticket_price_eur)),
             "delay_minutes": request.delay_minutes,
             "ticket_kind": request.ticket_kind.value,
             "travel_class": request.travel_class,
@@ -208,26 +215,26 @@ def calculate_compensation(request: CompensationRequest) -> Compensation:
 
     references: list[LegalReference] = []
     notes: list[str] = []
-    base_price = _cents(request.ticket_price_eur)
+    base_price = round_cents(request.ticket_price_eur)
 
     flat = FLAT_RATES.get((request.ticket_kind, request.travel_class))
     if flat is not None:
         flat_rate, reference = flat
-        percentage = FLAT_RATE_CAP_PERCENT
+        percentage = 0  # a flat amount, not a share of the price (the note says so)
         cap = base_price * FLAT_RATE_CAP_PERCENT / 100
-        compensation = _cents(min(flat_rate, cap))
+        compensation = round_cents(min(flat_rate, cap))
         references += [reference, DB_9_2_1, ART_19_1]
         notes.append(FLAT_RATE_NOTE)
     else:
         if request.ticket_kind is TicketKind.RETURN:
-            base_price = _cents(base_price / 2)
+            base_price = round_cents(base_price / 2)
             references.append(ART_19_3)
             notes.append(RETURN_NOTE)
         if request.delay_minutes >= DELAY_50_PERCENT:
             percentage, band = 50, ART_19_1_B
         else:
             percentage, band = 25, ART_19_1_A
-        compensation = _cents(base_price * percentage / 100)
+        compensation = round_cents(base_price * percentage / 100)
         references += [band, DB_9_2_1]
 
     if compensation < MINIMUM_PAYOUT_EUR:

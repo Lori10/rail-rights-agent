@@ -85,7 +85,7 @@ def test_live_round_trip(tools: Tools):
     }
     first = tools.call(OUTPUT_SUBMIT_CLAIM_FUNCTION_ARN, claim)
     assert "error" not in first, first
-    assert first["claim_id"] == f"CLM-{token}"
+    assert first["claim_id"].startswith("CLM-")
     assert Decimal(first["payout_eur"]) == Decimal("50.00")
 
     second = tools.call(OUTPUT_SUBMIT_CLAIM_FUNCTION_ARN, claim)

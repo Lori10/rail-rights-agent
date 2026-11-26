@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from rail_rights_agent.tools import compensation as rules
 from rail_rights_agent.tools.claims import ClaimReceipt, ClaimRequest, ClaimStore
@@ -70,23 +70,34 @@ def _optional_str(event: Event, field: str) -> str | None:
 def _decimal(event: Event, field: str) -> Decimal:
     raw = _required(event, field)
     try:
-        return Decimal(str(raw))
+        value = Decimal(str(raw))
     except InvalidOperation:
         raise ValidationError(f"{field} must be a number, got {raw!r}") from None
+    if not value.is_finite():
+        raise ValidationError(f"{field} must be a finite number, got {raw!r}")
+    return value
 
 
 def _int(event: Event, field: str, default: int | None = None) -> int:
-    raw = event.get(field, default)
+    """A whole number; JSON null counts as absent, and integral floats such as 60.0 are accepted."""
+    raw = event.get(field)
+    if raw is None:
+        raw = default
     if raw is None:
         raise ValidationError(f"{field} is required")
     try:
-        return int(str(raw))
-    except ValueError:
-        raise ValidationError(f"{field} must be a whole number, got {raw!r}") from None
+        value = Decimal(str(raw)) if not isinstance(raw, bool) else Decimal("NaN")
+    except InvalidOperation:
+        value = Decimal("NaN")
+    if not value.is_finite() or value != value.to_integral_value():
+        raise ValidationError(f"{field} must be a whole number, got {raw!r}")
+    return int(value)
 
 
 def _bool(event: Event, field: str) -> bool:
-    raw = event.get(field, False)
+    raw = event.get(field)
+    if raw is None:
+        return False
     if isinstance(raw, bool):
         return raw
     text = str(raw).strip().lower()
@@ -186,6 +197,11 @@ def _guarded(run: Callable[[], Result]) -> Result:
     except ClientError as err:
         error = err.response.get("Error", {})
         return _error(error.get("Code", "ServiceError"), error.get("Message", str(err)))
+    except BotoCoreError as err:
+        return _error(type(err).__name__, str(err))
+    except (ValueError, KeyError) as err:
+        # A stored record the mapping code can't read; never let it surface as a crash.
+        return _error("MALFORMED_RECORD", f"stored record could not be read: {err}")
 
 
 # --- Handlers -----------------------------------------------------------------------------------

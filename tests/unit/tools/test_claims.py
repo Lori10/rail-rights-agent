@@ -11,6 +11,7 @@ from rail_rights_agent.tools.claims import (
     ClaimReceipt,
     ClaimRequest,
     ClaimStore,
+    claim_id_for,
     claim_item,
     submit_claim,
 )
@@ -62,13 +63,13 @@ def store(dynamodb_client) -> ClaimStore:
 
 def expected_item(submitted_at: str = "2026-11-26T10:30:00+00:00") -> dict[str, Any]:
     return {
-        "claim_id": {"S": f"CLM-{TOKEN}"},
+        "claim_id": {"S": claim_id_for(request(), TOKEN)},
         "confirmation_token": {"S": TOKEN},
         "train_number": {"S": "ICE123"},
         "travel_date": {"S": "2026-11-20"},
         "ticket_kind": {"S": "single"},
         "travel_class": {"N": "2"},
-        "ticket_price_eur": {"N": "100"},
+        "ticket_price_eur": {"N": "100.00"},
         "delay_minutes": {"N": "120"},
         "cause": {"S": "operational"},
         "informed_before_purchase": {"BOOL": False},
@@ -96,7 +97,7 @@ def test_matching_token_stores_the_full_record(store, dynamodb_stub):
     expect_put(dynamodb_stub, expected_item())
     receipt = submit_claim(store, request(), now=now)
     assert receipt == ClaimReceipt(
-        claim_id=f"CLM-{TOKEN}",
+        claim_id=claim_id_for(request(), TOKEN),
         payout_eur=Decimal("50.00"),
         already_submitted=False,
         submitted_at=NOW,
@@ -106,6 +107,12 @@ def test_matching_token_stores_the_full_record(store, dynamodb_stub):
 def test_claim_item_matches_the_spec_fields():
     item = claim_item(request(), calculate_compensation(COMP), NOW)
     assert item == expected_item()
+
+
+def test_stored_price_is_rounded_to_cents():
+    comp = CompensationRequest(ticket_price_eur=Decimal("29.899"), delay_minutes=60)
+    item = claim_item(request(compensation=comp), calculate_compensation(comp), NOW)
+    assert item["ticket_price_eur"] == {"N": "29.90"}
 
 
 def test_iban_is_optional():
@@ -166,13 +173,34 @@ def test_second_submission_returns_existing_claim(store, dynamodb_stub):
     dynamodb_stub.add_response(
         "get_item",
         {"Item": expected_item()},
-        {"TableName": TABLE, "Key": {"claim_id": {"S": f"CLM-{TOKEN}"}}},
+        {
+            "TableName": TABLE,
+            "Key": {"claim_id": {"S": claim_id_for(request(), TOKEN)}},
+            "ConsistentRead": True,
+        },
     )
     second = submit_claim(store, request(), now=lambda: NOW.replace(hour=11))
     assert second.claim_id == first.claim_id
     assert second.already_submitted
     assert second.payout_eur == Decimal("50.00")
     assert second.submitted_at == NOW
+
+
+def test_claim_id_is_stable_for_the_same_claim():
+    assert claim_id_for(request(), TOKEN) == claim_id_for(request(), TOKEN)
+    assert claim_id_for(request(), TOKEN).startswith("CLM-")
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"train_number": "ICE 517", "travel_date": date(2026, 11, 23)},
+        {"travel_date": date(2026, 11, 21)},
+        {"email": "ben@example.com"},
+    ],
+)
+def test_equal_amounts_for_other_trips_or_passengers_get_other_ids(overrides: dict[str, Any]):
+    assert claim_id_for(request(**overrides), TOKEN) != claim_id_for(request(), TOKEN)
 
 
 # --- Field validation ---------------------------------------------------------------------------

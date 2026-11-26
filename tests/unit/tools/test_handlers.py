@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
+from botocore.exceptions import EndpointConnectionError
 
 from rail_rights_agent.tools import handlers
 from rail_rights_agent.tools.compensation import (
@@ -68,6 +69,44 @@ def test_compensation_handler_reports_invalid_input_as_error():
     assert "delay_minutes" in result["error"]["message"]
 
 
+@pytest.mark.parametrize("price", ["nan", "inf", "-inf", "1e30"])
+def test_compensation_handler_rejects_non_finite_or_absurd_prices(price: str):
+    result = handlers.calculate_compensation({"ticket_price_eur": price, "delay_minutes": 60}, None)
+    assert result["error"]["code"] == "INVALID_INPUT"
+    assert "ticket_price_eur" in result["error"]["message"]
+
+
+def test_compensation_handler_treats_null_optionals_as_absent():
+    result = handlers.calculate_compensation(
+        {
+            "ticket_price_eur": 100,
+            "delay_minutes": 60,
+            "ticket_kind": None,
+            "travel_class": None,
+            "cause": None,
+            "informed_before_purchase": None,
+            "reimbursed_under_art_18": None,
+        },
+        None,
+    )
+    assert result["compensation_eur"] == "25.00"
+
+
+def test_compensation_handler_accepts_integral_floats():
+    result = handlers.calculate_compensation({"ticket_price_eur": 100, "delay_minutes": 60.0}, None)
+    assert result["compensation_eur"] == "25.00"
+    result = handlers.calculate_compensation({"ticket_price_eur": 100, "delay_minutes": 60.5}, None)
+    assert result["error"]["code"] == "INVALID_INPUT"
+
+
+def test_flat_rate_result_reports_no_percentage():
+    result = handlers.calculate_compensation(
+        {"ticket_price_eur": 400, "delay_minutes": 70, "ticket_kind": "season_long_distance"}, None
+    )
+    assert result["compensation_eur"] == "5.00"
+    assert result["percentage"] == 0
+
+
 def test_compensation_handler_reports_missing_field():
     result = handlers.calculate_compensation({"delay_minutes": 60}, None)
     assert result["error"]["code"] == "INVALID_INPUT"
@@ -126,6 +165,29 @@ def test_delay_handler_passes_service_error_code_through(dynamodb_stub):
     assert result["error"]["code"] == "ProvisionedThroughputExceededException"
 
 
+class _Unreachable:
+    def get_item(self, **kwargs: Any) -> Any:
+        raise EndpointConnectionError(endpoint_url="https://dynamodb.eu-north-1.amazonaws.com")
+
+
+def test_delay_handler_reports_connection_failures_as_errors():
+    handlers.use_client(_Unreachable())  # type: ignore[arg-type]
+    result = handlers.get_train_delay(
+        {"train_number": "ICE 123", "travel_date": "2026-11-20"}, None
+    )
+    assert result["error"]["code"] == "EndpointConnectionError"
+
+
+def test_delay_handler_reports_malformed_records_as_errors(dynamodb_stub):
+    item = trip_to_item(ICE123)
+    item["status"] = {"S": "teleported"}
+    dynamodb_stub.add_response("get_item", {"Item": item})
+    result = handlers.get_train_delay(
+        {"train_number": "ICE 123", "travel_date": "2026-11-20"}, None
+    )
+    assert result["error"]["code"] == "MALFORMED_RECORD"
+
+
 # --- submit_claim -------------------------------------------------------------------------------
 
 
@@ -144,7 +206,7 @@ def test_submit_handler_stores_and_returns_receipt(dynamodb_stub):
     dynamodb_stub.add_response("put_item", {})
     result = handlers.submit_claim(event, None)
     assert json_round_trip(result) == result
-    assert result["claim_id"] == f"CLM-{token}"
+    assert result["claim_id"].startswith("CLM-")
     assert result["payout_eur"] == "50.00"
     assert result["already_submitted"] is False
     assert result["submitted_at"].endswith("+00:00")

@@ -13,8 +13,15 @@ Each tool (`get_train_delay`, `calculate_compensation`, `submit_claim`) SHALL be
 - **WHEN** the compensation handler is invoked with the arguments of a €100 single ticket and a 60-minute delay
 - **THEN** it returns an object whose compensation is `25.00` and whose references and token are present
 
+### Requirement: Optional arguments may be null or omitted
+A handler SHALL treat an optional argument given as JSON null the same as an omitted one, and SHALL accept a whole number given as an integral float (such as 60.0).
+
+#### Scenario: Null optionals
+- **WHEN** the compensation handler is invoked with `travel_class` and `cause` set to null
+- **THEN** it uses the defaults (2nd class, unknown cause) and returns a result, not an error
+
 ### Requirement: Errors are returned as structured results, never raised
-When a tool rejects its input or finds nothing, the handler SHALL return an object with an `error` holding a `code` and a `message`, instead of raising. Unexpected service failures SHALL be returned the same way with the service's error code.
+When a tool rejects its input or finds nothing, the handler SHALL return an object with an `error` holding a `code` and a `message`, instead of raising. Service failures, connection failures and unreadable stored records SHALL be returned the same way with a stable code.
 
 #### Scenario: Unknown trip through the handler
 - **WHEN** the delay handler is invoked for a train and date with no record

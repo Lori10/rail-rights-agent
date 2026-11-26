@@ -237,6 +237,16 @@ def test_non_positive_price_rejected(price: str):
         calc(price, 60)
 
 
+@pytest.mark.parametrize("price", ["NaN", "Infinity", "1e30"])
+def test_non_finite_or_absurd_price_rejected(price: str):
+    with pytest.raises(ValidationError, match="ticket_price_eur"):
+        calc(price, 60)
+
+
+def test_flat_rate_reports_no_percentage():
+    assert calc("400", 70, ticket_kind=TicketKind.SEASON_LONG_DISTANCE).percentage == 0
+
+
 def test_invalid_travel_class_rejected():
     with pytest.raises(ValidationError, match="travel_class"):
         calc("100", 60, travel_class=3)

@@ -72,7 +72,7 @@ See proposal.md for motivation. What this change builds on:
 - **Choice:**
   - `ClaimRequest`: the `CompensationRequest` fields plus `train_number`, `travel_date`, `passenger_name`, `email`, `iban: str | None`, `confirmation_token`.
   - `ClaimStore(dynamodb_client, table_name)`; `submit_claim(store, request, now=datetime.now) -> ClaimReceipt(claim_id, payout_eur, already_submitted, submitted_at)`.
-  - Order: validate fields → `calculate_compensation` → payout 0 → `ClaimRejected(reason)`; token mismatch → `ClaimRejected("CONFIRMATION_MISMATCH")`; `claim_id = "CLM-" + token`; `PutItem` with `ConditionExpression="attribute_not_exists(claim_id)"`; on `ConditionalCheckFailedException` → `GetItem` and return the existing receipt with `already_submitted=True`.
+  - Order: validate fields → `calculate_compensation` → payout 0 → `ClaimRejected(reason)`; token mismatch → `ClaimRejected("CONFIRMATION_MISMATCH")`; `claim_id = "CLM-" + sha256(token | train | date | email)[:16]`, so two passengers (or two trips) with equal amounts never collide; `PutItem` with `ConditionExpression="attribute_not_exists(claim_id)"`; on `ConditionalCheckFailedException` → a strongly consistent `GetItem` and return the existing receipt with `already_submitted=True`.
   - Item: every field in the spec, money as `N` strings, `status = "submitted"`, `submitted_at` ISO UTC.
 - **Why:** The condition expression makes the write idempotent without a read-before-write race. Deriving the id from the token means "same confirmed claim" and "same id" are the same thing. `now` is injected for tests.
 - **Rejected:**
@@ -146,6 +146,15 @@ See proposal.md for motivation. What this change builds on:
   - `tests/unit/conftest.py` holds the shared DynamoDB stub fixtures; the knowledge-base conftest
     is untouched.
   - gitleaks is not installed on the development machine; CI runs the secret scan.
+  - **Code review (medium) after the first verify pass found eight issues, all fixed with tests:**
+    the claim id was derived from the token alone, so equal amounts for different passengers or
+    trips collided (now token + train + date + email; spec scenario added); `nan`/`inf`/`1e30`
+    prices crashed the handler instead of returning `INVALID_INPUT`; the post-conflict `GetItem`
+    was eventually consistent (now `ConsistentRead=True`); JSON `null` for optional fields and
+    integral floats such as `60.0` were rejected (now accepted; spec requirement added);
+    `BotoCoreError` and unreadable stored records escaped as raised exceptions (now structured
+    errors); flat-rate results reported `percentage=25` (now 0, the note explains the flat amount);
+    the stored ticket price was unrounded (now cents).
 
 ## Migration Plan
 
