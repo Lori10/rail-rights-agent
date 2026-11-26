@@ -1,6 +1,6 @@
 """Spec: compensation-calculation."""
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 from hypothesis import given, settings
@@ -252,7 +252,8 @@ delays = st.integers(min_value=0, max_value=3000)
 @given(price=prices, delay=delays)
 def test_never_exceeds_half_the_price(price: Decimal, delay: int):
     result = calc(str(price), delay)
-    assert result.compensation_eur <= price / 2
+    # DB A.9.2.1 rounds half-up, so half a cent above 50 % is allowed (spec property).
+    assert result.compensation_eur <= (price / 2).quantize(Decimal("0.01"), ROUND_HALF_UP)
     assert result.payout_eur <= result.compensation_eur
 
 

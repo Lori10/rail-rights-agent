@@ -134,7 +134,7 @@ The calculation SHALL reject a negative or zero ticket price, a negative delay, 
 - **THEN** it fails with an error naming the price
 
 ### Requirement: Compensation properties hold for all inputs
-For every valid single-ticket input: the compensation SHALL never exceed 50 % of the price, SHALL not decrease when only the delay increases, and the payout SHALL be either €0.00 or at least €4.00.
+For every valid single-ticket input: the compensation SHALL never exceed 50 % of the price rounded half-up to cents, SHALL not decrease when only the delay increases, and the payout SHALL be either €0.00 or at least €4.00.
 
 #### Scenario: Property check over generated inputs
 - **WHEN** the calculation runs over many generated prices and delays

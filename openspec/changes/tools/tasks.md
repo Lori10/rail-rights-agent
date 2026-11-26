@@ -12,8 +12,8 @@
 
 ## 2. Compensation rules
 
-- [ ] 2.1 Implement `rail_rights_agent/tools/compensation.py` per design D1 and D2 (enums, dataclasses, rules table with clause references, `calculate_compensation`, token). Verify: `tests/unit/tools/test_compensation.py` passes, Hypothesis included.
-- [ ] 2.2 Commit (`feat: deterministic compensation rules from Art. 19 and DB conditions`).
+- [x] 2.1 Implement `rail_rights_agent/tools/compensation.py` per design D1 and D2 (enums, dataclasses, rules table with clause references, `calculate_compensation`, token). Verify: `tests/unit/tools/test_compensation.py` passes, Hypothesis included.
+- [x] 2.2 Commit (`feat: deterministic compensation rules from Art. 19 and DB conditions`).
 
 ## 3. Delay lookup, claims and shared AWS helpers
 
