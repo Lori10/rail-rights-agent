@@ -32,9 +32,9 @@
 
 ## 5. Docs and gate
 
-- [ ] 5.1 Extend the README "Development" section with the `seed`, `delay` and `compensate` commands and the deploy → seed order. Verify: the `--help` command runs as written.
-- [ ] 5.2 Update `docs/ARCHITECTURE.md`: status table row for milestone 3 → built, the "AWS Lambda and DynamoDB" section (what, why, rejected: one Lambda per tool, token design, Deutschland-Ticket deviation), the end-to-end request section if it names the tools, the cost table and the "Where the code is" table. Verify: every relative link in the file resolves (`grep -o '](\.\./[^)]*)'` paths exist).
-- [ ] 5.3 Update `docs/INTERVIEW.md`: add questions and answers for what this change built (why the LLM never computes money, how the confirmation token works, why one Lambda per tool, how idempotency works, what the sources do and don't settle, how the handlers already fit the Gateway), rewrite any *(planned)* answer that is now built, and update the "Last updated by" line to `tools` (milestone 3). Verify: no answer about tools is still marked *(planned)*.
+- [x] 5.1 Extend the README "Development" section with the `seed`, `delay` and `compensate` commands and the deploy → seed order. Verify: the `--help` command runs as written.
+- [x] 5.2 Update `docs/ARCHITECTURE.md`: status table row for milestone 3 → built, the "AWS Lambda and DynamoDB" section (what, why, rejected: one Lambda per tool, token design, Deutschland-Ticket deviation), the end-to-end request section if it names the tools, the cost table and the "Where the code is" table. Verify: every relative link in the file resolves (`grep -o '](\.\./[^)]*)'` paths exist).
+- [x] 5.3 Update `docs/INTERVIEW.md`: add questions and answers for what this change built (why the LLM never computes money, how the confirmation token works, why one Lambda per tool, how idempotency works, what the sources do and don't settle, how the handlers already fit the Gateway), rewrite any *(planned)* answer that is now built, and update the "Last updated by" line to `tools` (milestone 3). Verify: no answer about tools is still marked *(planned)*.
 - [ ] 5.4 Run `/devflow:verify` and confirm PASS. Record any known gaps under Risks / Trade-offs in design.md. After PASS, push and open the draft PR (`gh pr create --draft`, body links `openspec/changes/tools/`).
 
 ## 6. Live checks (user runs or approves; each step needs explicit go-ahead)

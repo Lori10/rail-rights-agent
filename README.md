@@ -59,6 +59,25 @@ uv run pytest -q -m live tests/live                            # live smoke test
 
 Re-run `ingest` after replacing a PDF. `scripts/destroy.sh` deletes the documents and vectors too.
 
+### Tools
+
+The agent's three tools (`get_train_delay`, `calculate_compensation`, `submit_claim`) are plain
+Python in `src/rail_rights_agent/tools/`, deployed by the `RailRightsAgent-Tools` stack as one
+Lambda function each over two on-demand DynamoDB tables. After `scripts/deploy.sh`, seed the mock
+trips, then probe. `seed` and `delay` are live; `compensate` runs offline:
+
+```bash
+uv run python -m rail_rights_agent.tools --help
+uv run python -m rail_rights_agent.tools seed                          # write the mock trips (live)
+uv run python -m rail_rights_agent.tools delay "ICE 123" 2026-11-20    # look one up (live)
+uv run python -m rail_rights_agent.tools compensate --price 29.90 --delay 75   # offline
+uv run pytest -q -m live tests/live/test_tools_live.py                # live round trip (billed, ~$0)
+```
+
+Compensation is computed from Art. 19 of Regulation (EU) 2021/782 and the DB conditions; every
+result lists the clauses it rests on. Deutschland-Ticket and regional season tickets are reported
+as not computable from the source documents.
+
 ## Docs
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): components, AWS services and why each was chosen.
