@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from botocore.exceptions import ClientError
 
+from rail_rights_agent.aws import StackError, stack_outputs
 from rail_rights_agent.knowledge_base.catalogue import CATALOGUE, sidecar_json
 from rail_rights_agent.knowledge_base.deployment import (
     DOCUMENTS_PREFIX,
@@ -61,22 +62,11 @@ class IngestionResult:
 def resolve_stack_outputs(
     cfn: "CloudFormationClient", stack_name: str = STACK_NAME
 ) -> StackOutputs:
-    try:
-        (stack,) = cfn.describe_stacks(StackName=stack_name)["Stacks"]
-    except ClientError as err:
-        if "does not exist" in err.response.get("Error", {}).get("Message", ""):
-            raise KnowledgeBaseError(
-                "StackNotFound",
-                f"stack {stack_name} does not exist; deploy first with scripts/deploy.sh",
-            ) from err
-        raise KnowledgeBaseError.from_client_error(err) from err
-    outputs = {o["OutputKey"]: o["OutputValue"] for o in stack.get("Outputs", [])}
     keys = (OUTPUT_KNOWLEDGE_BASE_ID, OUTPUT_DATA_SOURCE_ID, OUTPUT_DOCUMENTS_BUCKET)
-    missing = [k for k in keys if k not in outputs]
-    if missing:
-        raise KnowledgeBaseError(
-            "StackOutputMissing", f"stack {stack_name} has no output {', '.join(missing)}"
-        )
+    try:
+        outputs = stack_outputs(cfn, stack_name, keys)
+    except StackError as err:
+        raise KnowledgeBaseError(err.code, err.message) from err
     return StackOutputs(
         knowledge_base_id=outputs[OUTPUT_KNOWLEDGE_BASE_ID],
         data_source_id=outputs[OUTPUT_DATA_SOURCE_ID],

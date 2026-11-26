@@ -60,7 +60,7 @@ def store(dynamodb_client) -> ClaimStore:
     return ClaimStore(dynamodb_client, TABLE)
 
 
-def expected_item() -> dict[str, Any]:
+def expected_item(submitted_at: str = "2026-11-26T10:30:00+00:00") -> dict[str, Any]:
     return {
         "claim_id": {"S": f"CLM-{TOKEN}"},
         "confirmation_token": {"S": TOKEN},
@@ -79,7 +79,7 @@ def expected_item() -> dict[str, Any]:
         "email": {"S": "anna@example.com"},
         "iban": {"S": "DE02120300000000202051"},
         "status": {"S": "submitted"},
-        "submitted_at": {"S": "2026-11-26T10:30:00+00:00"},
+        "submitted_at": {"S": submitted_at},
     }
 
 
@@ -159,7 +159,7 @@ def test_second_submission_returns_existing_claim(store, dynamodb_stub):
         "The conditional request failed",
         expected_params={
             "TableName": TABLE,
-            "Item": expected_item(),
+            "Item": expected_item(submitted_at="2026-11-26T11:30:00+00:00"),
             "ConditionExpression": CONDITION,
         },
     )

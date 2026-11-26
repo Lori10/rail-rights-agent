@@ -17,12 +17,12 @@
 
 ## 3. Delay lookup, claims and shared AWS helpers
 
-- [ ] 3.1 Add `rail_rights_agent/aws.py` (D7) and make `knowledge_base/aws.py` and `knowledge_base/ingest.py` import from it. Verify: `tests/unit/knowledge_base` passes unchanged.
-- [ ] 3.2 Implement `tools/delays.py`, `tools/seed_data.py` and `tools/deployment.py` per D3 and D6. Verify: `test_delays.py` and `test_seed_data.py` pass.
-- [ ] 3.3 Implement `tools/claims.py` per D4. Verify: `test_claims.py` passes.
-- [ ] 3.4 Implement `tools/handlers.py` per D5. Verify: `test_handlers.py` passes and `uv run mypy` is clean.
-- [ ] 3.5 Implement `tools/__main__.py` with `seed`, `delay TRAIN DATE` and `compensate` (offline) subcommands. Verify: `uv run python -m rail_rights_agent.tools --help` lists them and `compensate --price 100 --delay 60` prints €25.00 without any AWS call (run with no credentials).
-- [ ] 3.6 Commit (`feat: train delay lookup and idempotent claim submission`).
+- [x] 3.1 Add `rail_rights_agent/aws.py` (D7) and make `knowledge_base/aws.py` and `knowledge_base/ingest.py` import from it. Verify: `tests/unit/knowledge_base` passes unchanged.
+- [x] 3.2 Implement `tools/delays.py`, `tools/seed_data.py` and `tools/deployment.py` per D3 and D6. Verify: `test_delays.py` and `test_seed_data.py` pass.
+- [x] 3.3 Implement `tools/claims.py` per D4. Verify: `test_claims.py` passes.
+- [x] 3.4 Implement `tools/handlers.py` per D5. Verify: `test_handlers.py` passes and `uv run mypy` is clean.
+- [x] 3.5 Implement `tools/__main__.py` with `seed`, `delay TRAIN DATE` and `compensate` (offline) subcommands. Verify: `uv run python -m rail_rights_agent.tools --help` lists them and `compensate --price 100 --delay 60` prints €25.00 without any AWS call (run with no credentials).
+- [x] 3.6 Commit (`feat: train delay lookup and idempotent claim submission`).
 
 ## 4. Tools stack
 
