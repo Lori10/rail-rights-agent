@@ -26,9 +26,9 @@
 
 ## 4. Tools stack
 
-- [ ] 4.1 Implement `infra/stacks/tools.py::ToolsStack` per D6 and wire it into `build_app`. Verify: `tests/infra/test_tools_stack.py` passes and `tests/infra/test_app.py` passes unchanged, including the tag walk over the new stack.
-- [ ] 4.2 Verify `scripts/deploy.sh --dry-run` synthesises every stack offline with no credentials, and the tools asset zip in `cdk.out` contains `rail_rights_agent/tools/handlers.py` and no `knowledge_base/` or `__pycache__`.
-- [ ] 4.3 Commit (`feat: tools stack with DynamoDB tables and Lambda functions`).
+- [x] 4.1 Implement `infra/stacks/tools.py::ToolsStack` per D6 and wire it into `build_app`. Verify: `tests/infra/test_tools_stack.py` passes and `tests/infra/test_app.py` passes unchanged, including the tag walk over the new stack.
+- [x] 4.2 Verify `scripts/deploy.sh --dry-run` synthesises every stack offline with no credentials, and the tools asset zip in `cdk.out` contains `rail_rights_agent/tools/handlers.py` and no `knowledge_base/` or `__pycache__`.
+- [x] 4.3 Commit (`feat: tools stack with DynamoDB tables and Lambda functions`).
 
 ## 5. Docs and gate
 
