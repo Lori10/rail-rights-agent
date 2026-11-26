@@ -7,7 +7,7 @@ to the `design.md` that made the decision; this file explains, the designs decid
 its own PR (rule in [`openspec/config.yaml`](../openspec/config.yaml)). Parts marked *planned*
 follow [ROADMAP.md](ROADMAP.md) and may change when their milestone is designed.
 
-Last updated by: `knowledge-base` (milestone 2).
+Last updated by: `tools` (milestone 3).
 
 ## What the system does
 
@@ -23,7 +23,7 @@ does it submit the claim.
 |---|---|---|---|
 | Project tags, region lock, cost budget | CDK, AWS Budgets | 1 `foundation` | built |
 | Knowledge base over the legal texts | S3, S3 Vectors, Bedrock Knowledge Bases, Titan Embeddings V2 | 2 `knowledge-base` | built |
-| Tools: delay lookup, compensation, claim submission | Lambda, DynamoDB | 3 `tools` | planned |
+| Tools: delay lookup, compensation, claim submission | Lambda, DynamoDB | 3 `tools` | built |
 | Agent (local) | Strands Agents, Bedrock (Claude Haiku 4.5, Nova 2 Lite) | 4 `agent-local` | planned |
 | Hosted agent | AgentCore Runtime, Gateway, Memory, Cognito | 5 `agentcore` | planned |
 | Safety filters | Bedrock Guardrails | 6 `guardrails` | planned |
@@ -57,7 +57,7 @@ flowchart LR
         titan[Titan Embeddings V2]
     end
 
-    subgraph tools [Tools]
+    subgraph tools [Tools - built]
         delay[Lambda<br/>get_train_delay]
         comp[Lambda<br/>calculate_compensation]
         claim[Lambda<br/>submit_claim]
@@ -78,12 +78,13 @@ flowchart LR
     kbsvc --> titan
 
     classDef planned stroke-dasharray: 5 5
-    class ui,cognito,runtime,gateway,memory,obs,llm,guard,delay,comp,claim,ddb planned
+    class ui,cognito,runtime,gateway,memory,obs,llm,guard planned
 ```
 
 ## One request, end to end
 
-The target flow once milestone 5 lands. Steps 3–4 work today through the retrieval CLI.
+The target flow once milestone 5 lands. Steps 3–4 work today through the retrieval CLI; steps
+5, 6 and 8 work through the tools' Lambda functions and CLI (without the agent in between).
 
 1. The passenger writes *"Mein ICE hatte 90 Minuten Verspätung, was steht mir zu?"* in the
    Streamlit chat, which signs in with Cognito and calls the agent on **AgentCore Runtime**.
@@ -97,11 +98,14 @@ The target flow once milestone 5 lands. Steps 3–4 work today through the retri
 5. The model asks for the trip. Through **AgentCore Gateway** the agent calls the
    `get_train_delay` **Lambda**, which reads **DynamoDB**.
 6. The agent calls `calculate_compensation`. Python code applies Art. 19 (25 % from 60 minutes,
-   50 % from 120) and the DB rules (€4 minimum and others). **The model never does this arithmetic.**
+   50 % from 120, exclusions) and the DB rules (half-up rounding, €4 minimum payout, season-ticket
+   and BahnCard 100 flat rates). **The model never does this arithmetic.** The result lists the
+   clauses it rests on and a confirmation token bound to the amount.
 7. The model explains the result in German, citing the retrieved passages, and shows a claim
    summary.
-8. Only after the passenger explicitly confirms does the agent call `submit_claim`, which needs a
-   confirmation token and is idempotent. The claim is stored in DynamoDB.
+8. Only after the passenger explicitly confirms does the agent call `submit_claim` with that token.
+   The tool recomputes the amount, rejects a token that doesn't match, and writes the claim once
+   (a repeat returns the same claim id). The claim is stored in DynamoDB.
 9. **Memory** keeps the passenger's preferences for next time; **Observability** records the trace,
    tokens and latency.
 
@@ -166,11 +170,34 @@ The target flow once milestone 5 lands. Steps 3–4 work today through the retri
 - **Trade-off:** cross-language matching is weaker, so the agent filters by the user's language.
 - Decision: [knowledge-base design D2](../openspec/changes/archive/2026-11-01-knowledge-base/design.md).
 
-### AWS Lambda and DynamoDB: tools — planned (milestone 3)
-- `get_train_delay` (over mock trip data), `calculate_compensation` (deterministic Python) and
-  `submit_claim` (idempotent, needs a confirmation token), as thin Lambda handlers over plain
-  Python functions. Two on-demand DynamoDB tables: trips/delays and claims.
-- **Why:** pay per call, ~$0 within the free tier. DynamoDB is the single source of truth for claims.
+### AWS Lambda and DynamoDB: tools — built
+- **What:** three tools as plain Python in [`src/rail_rights_agent/tools/`](../src/rail_rights_agent/tools/),
+  each wrapped by a thin handler and deployed as its own Python 3.12 Lambda function
+  ([`infra/stacks/tools.py`](../infra/stacks/tools.py)). Two on-demand DynamoDB tables: `Trips`
+  (mock delay records, seeded by `python -m rail_rights_agent.tools seed`) and `Claims`.
+  - `get_train_delay`: one `GetItem` by normalised train number and date; status, delay and
+    cause category.
+  - `calculate_compensation`: deterministic rules from Art. 19 of 2021/782 and the DB conditions
+    (A.9.2.1, B.13.1, C.3.10.1), money as `Decimal`, half-up rounding to cents. Every result lists
+    its legal references by catalogue document id and clause, so the agent can retrieve and cite
+    the passage. Needs no table.
+  - `submit_claim`: recomputes the compensation, requires the matching confirmation token, writes
+    with a conditional `PutItem` (claim id derived from the token), and returns the existing claim
+    on a repeat.
+- **Why one function per tool:** least-privilege IAM per function (the delay function can only
+  read trips; the submit function can only get and put claims; the compensation function has no
+  table access), and in milestone 5 each becomes a Gateway target with a one-tool schema. The
+  handlers already take the Gateway's event shape (tool arguments in, JSON out, errors as data).
+- **Why a plain directory asset:** the domain code is pure Python and the Lambda runtime ships
+  boto3, so no Docker bundling and no extra CDK package. Each function logs to a stack-owned
+  log group (7 days, deleted on destroy).
+- **What the sources don't settle:** Deutschland-Ticket and regional season tickets follow
+  tariffs that aren't among the three documents, so the tool returns "not computable from
+  sources" citing DB C.3.10.3 instead of hardcoding uncited amounts.
+- **Rejected:** one dispatching Lambda, `TableV2`/global tables, pydantic or Powertools for three
+  flat objects, an HMAC token with a secret (the token binds an amount to its inputs; it isn't an
+  authentication mechanism).
+- Decision: [tools design D1–D7](../openspec/changes/archive/2026-11-26-tools/design.md).
 
 ### Bedrock models and Strands Agents: the agent — planned (milestone 4)
 - Strands drives the loop: the model decides which tool to call, the agent runs it, the model
@@ -194,8 +221,8 @@ The target flow once milestone 5 lands. Steps 3–4 work today through the retri
 
 | Rule | Where it is enforced |
 |---|---|
-| Compensation is computed in code, never by the model | `calculate_compensation` tool (milestone 3), its table-driven tests |
-| No claim without explicit confirmation | confirmation token in `submit_claim`; agent tests (milestone 4) |
+| Compensation is computed in code, never by the model | `calculate_compensation` (built): table-driven and property-based tests over the rules |
+| No claim without explicit confirmation | `submit_claim` (built) accepts only the token of a matching computation and writes once; the conversational "yes" is the agent's job (milestone 4) |
 | Every rights answer cites retrieved passages | `Passage` carries document, language, page; agent and eval tests |
 | Only `eu-north-1` | settings check, account SCP |
 | Every resource tagged | `apply_project_tags` and a test over all synthesised resources |
@@ -211,7 +238,7 @@ Design target: about $0 while nothing is being used.
 | S3 documents, S3 Vectors storage | stored | cents per month |
 | Titan embeddings | ingestion, every `Retrieve` | fractions of a cent |
 | Budget | never | free |
-| Lambda, DynamoDB on demand *(planned)* | per call | ~$0 (free tier) |
+| Lambda, DynamoDB on demand | per call | ~$0 (free tier); storage in kilobytes |
 | Model inference *(planned)* | per token | ~$0.01–0.03 per conversation |
 | AgentCore Runtime, Gateway, Memory *(planned)* | per active request or tool call | ~$1–3 over development |
 | Guardrails *(planned)* | per text checked | < $1 per red-team run |
@@ -226,6 +253,8 @@ Estimates come from [ROADMAP.md](ROADMAP.md); each change re-checks its own.
 | [`infra/stacks/`](../infra/stacks/) | one file per stack: what exists in AWS |
 | [`src/rail_rights_agent/settings.py`](../src/rail_rights_agent/settings.py) | all configuration (`RAILAGENT_*`), model ids, region lock |
 | [`src/rail_rights_agent/knowledge_base/`](../src/rail_rights_agent/knowledge_base/) | document catalogue, ingestion, retrieval, CLI |
+| [`src/rail_rights_agent/tools/`](../src/rail_rights_agent/tools/) | compensation rules, delay lookup, claims, Lambda handlers, seed data, CLI |
+| [`src/rail_rights_agent/aws.py`](../src/rail_rights_agent/aws.py) | shared session and stack-output helpers for the CLIs |
 | [`tests/infra/`](../tests/infra/) | checks on the synthesised CloudFormation |
 | [`tests/unit/`](../tests/unit/) | offline behaviour tests (AWS stubbed) |
 | [`tests/live/`](../tests/live/) | billed checks against real AWS; run only with approval |

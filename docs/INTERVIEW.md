@@ -8,7 +8,7 @@ Details and evidence are in the linked `design.md` files and [ARCHITECTURE.md](A
 own PR (rule in [`openspec/config.yaml`](../openspec/config.yaml)). It adds questions for what it
 built and rewrites any *planned* answer that is now built.
 
-Last updated by: `knowledge-base` (milestone 2). Built so far: foundation, knowledge base.
+Last updated by: `tools` (milestone 3). Built so far: foundation, knowledge base, tools.
 Questions marked *(planned)* describe the agreed design; they are not built yet.
 
 **Contents:** [1. The pitch](#1-the-pitch) ·
@@ -19,7 +19,7 @@ Questions marked *(planned)* describe the agreed design; they are not built yet.
 [7. Testing and quality](#7-testing-and-quality) ·
 [8. How the work is run](#8-how-the-work-is-run) ·
 [9. Problems hit and lessons](#9-problems-hit-and-lessons) ·
-[10. The agent (planned)](#10-the-agent-planned)
+[10. Tools and the agent](#10-tools-and-the-agent)
 
 ---
 
@@ -40,9 +40,11 @@ chatbot demo avoids all of these; this project has to handle each one.
 
 ### What is built today, and what is still planned?
 Built: the foundation (project setup, quality gates, tagged CDK infrastructure, region lock,
-cost budget) and the knowledge base (legal PDFs ingested into S3 Vectors, a tested retrieval
-client returning passages with document, language and page). Planned, in order: tools (Lambda +
-DynamoDB), the local agent, AgentCore hosting, Guardrails, evaluation, UI and observability.
+cost budget), the knowledge base (legal PDFs ingested into S3 Vectors, a tested retrieval client
+returning passages with document, language and page) and the three tools (delay lookup,
+deterministic compensation, idempotent claim submission) as Lambda functions over DynamoDB.
+Planned, in order: the local agent, AgentCore hosting, Guardrails, evaluation, UI and
+observability.
 The order is in [ROADMAP.md](ROADMAP.md).
 
 ### What is the most important design rule?
@@ -62,7 +64,8 @@ The model asks for legal context, so the agent calls Knowledge Bases `Retrieve` 
 filter and gets the top passages. It asks for the trip, so the agent calls `get_train_delay`
 through AgentCore Gateway. `calculate_compensation` computes the amount in code. The model
 explains the result with citations and shows a claim summary; only after "yes" does it call
-`submit_claim`. Steps 3–4 (retrieval) work today; the rest is planned. The full flow is in
+`submit_claim`. Retrieval and the three tools work today (through their CLIs and Lambda); the
+agent loop and hosting are planned. The full flow is in
 [ARCHITECTURE.md](ARCHITECTURE.md#one-request-end-to-end).
 
 ### Why AgentCore and not Bedrock Agents?
@@ -207,8 +210,9 @@ outputs, logs and Memory while claim fields reach `submit_claim` unmasked. A red
 ### What does it cost to run?
 Design target is about $0 when idle: nothing is always on. Today the only standing cost is
 S3 and vector storage at cents per month, plus fractions of a cent per ingestion or query. The
-knowledge-base stack is destroyed between milestones and redeployed in about 2 minutes. The
-planned agent is estimated at $0.01–0.03 per conversation.
+knowledge-base stack is destroyed between milestones and redeployed in about 2 minutes. The tools
+stack (two on-demand tables, three Lambdas) costs about $0 idle and fractions of a cent per call.
+The planned agent is estimated at $0.01–0.03 per conversation.
 
 ### How do you avoid a surprise bill?
 Pay-per-use services only, one-command destroy, a test that bans OpenSearch Serverless, and a
@@ -226,9 +230,10 @@ ingestion polling and timeout tests run instantly. I chose `Stubber` over `moto`
 dependency and checks the exact request parameters.
 
 ### What test layers are there?
-Three. **Unit** tests (offline, AWS stubbed). **Infra** tests that synthesise the CDK app and
-assert on the CloudFormation (bucket hardening, index settings, IAM statements, tags, no
-OpenSearch). **Live** tests marked `live` that hit real AWS, excluded by default because they
+Three. **Unit** tests (offline, AWS stubbed), including property-based tests with Hypothesis
+over the compensation rules. **Infra** tests that synthesise the CDK app and assert on the
+CloudFormation (bucket hardening, index settings, IAM statements, Lambda runtimes and log groups,
+tags, no OpenSearch). **Live** tests marked `live` that hit real AWS, excluded by default because they
 are billed; they assert on keywords (e.g. `25`/`50`, `Erstattung`), never exact model output.
 
 ### What runs on every PR?
@@ -288,7 +293,15 @@ default test run.
 - **`aws login` credentials needed `botocore[crt]`**, found by the first live ingest. Added as a
   dev-only dependency, since in AWS the runtime uses its execution role.
 - **Destroy leaves a log group** created by CDK's auto-delete Lambda outside CloudFormation.
-  Accepted (~$0), documented, and deleted by hand.
+  Accepted (~$0), documented, and deleted by hand. The tools stack avoids this for its functions
+  by owning their log groups.
+- **The roadmap promised Deutschland-Ticket flat rates, the sources don't contain them.** The DB
+  document only says those rights follow the Deutschland-Ticket tariff. Rather than hardcode
+  numbers the agent couldn't cite, the tool returns "not computable from sources" with that
+  clause. Lesson: read the source before promising a rule.
+- **A property test caught a spec contradiction.** "Compensation never exceeds 50 % of the price"
+  and "round half-up to cents" (DB A.9.2.1) disagree for a €0.01 ticket. Hypothesis found it in
+  seconds; the spec now states the bound after rounding.
 
 ### What would you do differently or improve next?
 Measure retrieval quality with an evaluation set before tuning anything (that's milestone 7):
@@ -298,24 +311,70 @@ needed for AgentCore Runtime, where there is no `railagent` profile.
 
 ### What are the known limitations?
 Semantic search only, so exact article numbers ("Art. 19") match by meaning, not keyword. Only
-three documents. Train delays will come from mock data, not a live DB API. The system explains
-rights; it doesn't give legal advice or represent anyone.
+three documents. Train delays come from seeded mock data, not a live DB API. The compensation
+rules cover single, return, long-distance season tickets and BahnCard 100; Deutschland-Ticket,
+regional season tickets and cumulative caps across a validity period are out of scope. The system
+explains rights; it doesn't give legal advice or represent anyone.
 
 ---
 
-## 10. The agent (planned)
+## 10. Tools and the agent
 
-Answers here describe the agreed design. Rewrite each as the milestone that builds it lands.
+The tools are built (milestone 3); the agent that calls them is planned. Rewrite each *(planned)*
+answer as its milestone lands.
 
-### How will the agent call tools? *(planned, milestones 3–5)*
-The tools are plain Python functions with thin Lambda handlers. Locally the agent calls them
-in-process; on AgentCore, Gateway exposes the same Lambdas as MCP tools. One implementation,
-two transports, so the logic is tested once.
+### How do the tools work?
+Three plain Python functions in `rail_rights_agent.tools`, each with a thin Lambda handler:
+`get_train_delay` reads a mock trip record from DynamoDB, `calculate_compensation` applies the
+legal rules with no AWS access at all, and `submit_claim` writes a claim once. Locally the agent
+will call the functions in-process; on AgentCore, Gateway will expose the same Lambdas as MCP
+tools. One implementation, two transports, so the logic is tested once. The handlers already
+take the Gateway's event format (the tool arguments as the event, JSON back), so milestone 5 adds
+the Gateway without touching them.
 
-### How will you prevent a claim being submitted without consent? *(planned, milestones 3–4)*
+### How do you make sure the model never computes money?
+It has no way to: the only path to an amount is `calculate_compensation`, deterministic Python
+over `Decimal`. The rules are a table with the clause next to each number (Art. 19(1) 25 %/50 %,
+Art. 19(3) half price for return tickets, Art. 19(9) and (10) exclusions, DB A.9.2.1 half-up
+rounding and the €4 minimum, DB B.13.1 and C.3.10.1 flat rates). Every result lists those
+references by document id and clause, so the model's job is to explain and cite the passage the
+knowledge base returns for them. The tests are one case per spec scenario plus Hypothesis
+properties: bounded by 50 % after rounding, monotonic in delay, payout is zero or at least €4.
+
+### How does the confirmation token work, and why isn't it a secret?
+`calculate_compensation` returns a token: a short SHA-256 digest of the inputs that affect the
+amount plus the payout. `submit_claim` recomputes the compensation from the submitted fields and
+rejects the claim unless the token matches. So the model cannot submit an amount it made up or a
+claim it never had computed. It is deliberately not an HMAC: the callers are my own agent and,
+later, the Gateway behind Cognito; the risk is a fabricated number, not an attacker forging
+digests, and a secret would mean Secrets Manager and two more IAM grants for no gain. The human
+"yes" is the agent's half of the two-phase flow (milestone 4).
+
+### How is claim submission idempotent?
+The claim id is derived from the token, so "the same confirmed claim" and "the same id" are the
+same thing. The write is a `PutItem` with `attribute_not_exists(claim_id)`; if that condition
+fails, the tool reads the existing record and returns it marked `already_submitted`. No
+read-before-write race, no second table or index.
+
+### Why one Lambda per tool instead of one function dispatching on the tool name?
+Least privilege and simplicity. The delay function can only read the trips table, the submit
+function can only get and put claims, and the compensation function has no table access at all;
+a single function would need the union. Gateway prefixes tool names with the target name, which
+a dispatching function has to strip; one tool per target avoids that. Three small functions also
+mean three small blast radii.
+
+### What did the source documents not settle?
+Deutschland-Ticket compensation: the DB conditions say (C.3.10.3) that its rights follow the
+Deutschland-Ticket tariff, which isn't one of the three source documents and may not be added
+casually. The tool returns "not computable from sources" with that reference instead of guessing,
+and the same applies to regional season tickets and to cumulative caps over a validity period.
+The roadmap had promised Deutschland-Ticket rates; the design records the deviation.
+
+### How will you prevent a claim being submitted without consent? *(agent half planned, milestone 4)*
 Two phases: the agent shows a claim summary and waits for an explicit yes, then calls
-`submit_claim`, which requires a confirmation token and is idempotent (a retry can't file twice).
-Agent tests with a stubbed model assert that `submit_claim` is never called without confirmation.
+`submit_claim` with the token from the computation. The tool half is built: without a matching
+token nothing is written, and a retry can't file twice. Agent tests with a stubbed model will
+assert that `submit_claim` is never called without confirmation.
 
 ### What goes in AgentCore Memory versus DynamoDB? *(planned, milestone 5)*
 DynamoDB is the single source of truth for claims. Memory holds only preferences and session

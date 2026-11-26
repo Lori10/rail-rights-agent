@@ -1,10 +1,9 @@
-"""boto3 clients for the knowledge base, built from the project settings (profile and region)."""
+"""boto3 clients for the knowledge base, built from the shared session (profile and region)."""
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import boto3
-
+from rail_rights_agent.aws import session
 from rail_rights_agent.settings import Settings
 
 if TYPE_CHECKING:
@@ -23,10 +22,10 @@ class AwsClients:
 
 
 def clients(settings: Settings) -> AwsClients:
-    session = boto3.Session(profile_name=settings.aws_profile, region_name=settings.aws_region)
+    aws = session(settings)
     return AwsClients(
-        cloudformation=session.client("cloudformation"),
-        s3=session.client("s3"),
-        bedrock_agent=session.client("bedrock-agent"),
-        bedrock_agent_runtime=session.client("bedrock-agent-runtime"),
+        cloudformation=aws.client("cloudformation"),
+        s3=aws.client("s3"),
+        bedrock_agent=aws.client("bedrock-agent"),
+        bedrock_agent_runtime=aws.client("bedrock-agent-runtime"),
     )
