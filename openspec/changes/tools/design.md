@@ -133,6 +133,20 @@ See proposal.md for motivation. What this change builds on:
 - **Asset from `src/` picks up stray files.** → Explicit excludes; the infra test asserts the handler paths; the live invoke proves the import works.
 - **Seed data drifts from the rule set** as rules change. → `test_seed_data.py` asserts coverage of every delay band, status and cause.
 
+- **Known gaps and adjustments found while implementing (offline groups):**
+  - D6 said `dynamodb.TableV2`; the stack uses `dynamodb.Table`. `TableV2` synthesises an
+    `AWS::DynamoDB::GlobalTable`, a heavier resource type for a single-region table with no
+    benefit here. The spec scenarios ("a table in on-demand billing mode") are unchanged.
+  - The compensation-calculation property "never exceeds 50 % of the price" contradicted the
+    half-up rounding DB A.9.2.1 mandates for a €0.01 ticket at 120 minutes (0.005 → €0.01).
+    Hypothesis found it. The spec property now reads "50 % of the price rounded half-up to cents",
+    and the test checks that. No other test changed.
+  - The Lambda asset also ships `settings.py` and `aws.py` (imported by nothing in the handlers);
+    about 10 KB, kept for simplicity of the `src/` asset. `knowledge_base/` and caches are excluded.
+  - `tests/unit/conftest.py` holds the shared DynamoDB stub fixtures; the knowledge-base conftest
+    is untouched.
+  - gitleaks is not installed on the development machine; CI runs the secret scan.
+
 ## Migration Plan
 
 - Offline groups change nothing in AWS. The knowledge-base helper move is import-compatible.
